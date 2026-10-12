@@ -226,7 +226,7 @@ const INFO={
  lectures:'Add lecture videos for any subject by pasting JSON. Tap <b>Get the Claude prompt</b>, copy it, paste it into Claude with your lecture names, lengths and links, and paste the JSON Claude gives back into <b>+ Add lectures</b>. Daily study time is then split between topics and lectures by the share below.',
  study:'Minutes per topic: about how long a new topic takes you. Minutes per revision: how long revising one topic takes. Today’s list uses it to decide how many topics fit in your study time. Revision days: the last days before the exam kept free for revision.',
  look:'Match phone follows your phone’s dark mode setting.',
- sync:'Your data always saves on this device first and works without internet. Cloud sync keeps a copy online so you can use the same data on phone and laptop and never lose it. Setup steps are in the README file.',
+ sync:'Your data always saves on this device first and works without internet. Cloud sync keeps a copy in Firebase so the same data shows on phone and laptop, and nothing is lost if the phone changes. No login: the sync code is the key. Keep it private, and write it down somewhere safe.',
  backup:'Download a backup file once a week and keep it in Google Drive or email it to yourself. Import replaces everything on this device with the backup.',
  sems:'Each semester has its own subjects and exam date. Old semesters stay saved. The current semester is what Today and Syllabus show.',
  reset:'Erase all progress removes every crossed topic and setting on this device, then loads the Sem 1 syllabus fresh. Download a backup first.'
@@ -331,25 +331,32 @@ function buildPlan(hours){
 function ensurePlan(){const t=today();if(!S.plan||S.plan.date!==t||!S.plan.rev||!S.plan.vids){buildPlan(S.hoursLog[t]||S.set.hours);save(true)}else{S.plan.ids=S.plan.ids.filter(id=>findTopic(id));S.plan.rev=S.plan.rev.filter(r=>findTopic(r.id));S.plan.vids=S.plan.vids.filter(id=>findVideo(id))}}
 const revDone=(x,k)=>k==='rx'?x.rx===today():x[k]===today();
 
-/* ================= sync (Supabase, optional) ================= */
-let SY={url:'',key:'',code:'',status:'',dirty:false};
-try{SY=Object.assign(SY,JSON.parse(localStorage.getItem(SKEY)||'{}'))}catch(e){}
+/* ================= sync (Firebase Realtime Database, no login) =================
+   Data lives at /desks/<sync code>. Rules only allow reading/writing a path whose code you know. */
+const DBURL='https://pragati-study-desk-default-rtdb.asia-southeast1.firebasedatabase.app';
+let SY={code:'',status:'',dirty:false};
+try{const o=JSON.parse(localStorage.getItem(SKEY)||'{}');SY.code=o.code&&!o.url?o.code:'';SY.status=o.status||'';SY.dirty=!!o.dirty&&!!SY.code}catch(e){}
 const saveSY=()=>{try{localStorage.setItem(SKEY,JSON.stringify(SY))}catch(e){}};
-const syncOn=()=>!!(SY.url&&SY.key&&SY.code);
-const base=()=>SY.url.trim().replace(/\/+$/,'');
-const hdr=()=>({'apikey':SY.key.trim(),'Authorization':'Bearer '+SY.key.trim(),'Content-Type':'application/json'});
+const syncOn=()=>!!SY.code;
+const deskUrl=c=>DBURL+'/desks/'+encodeURIComponent(c||SY.code)+'.json';
 const nowT=()=>new Date().toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'});
 function setSync(m){SY.status=m;saveSY();const el=$('#syncst');if(el)el.textContent=m}
+function syncErr(e){const m=String(e&&e.message||e);setSync(/401|403|denied/i.test(m)?'Sync blocked by Firebase rules. Update the database rules (see README). Data is safe on this device.':'Sync failed ('+m.slice(0,80)+'). Data is safe on this device.')}
+function newCode(){const a=new Uint8Array(12);(window.crypto||{}).getRandomValues?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.random()*256|0);return 'pragati-'+Array.from(a,b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('')}
+async function getRemote(code){const r=await fetch(deskUrl(code),{cache:'no-store'});if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,80));const v=await r.json();if(!v||!v.json)return null;let d=JSON.parse(v.json);if(d&&!d.plan)d=fromOld(d);return d}
 let pushT;function schedulePush(){if(!syncOn())return;SY.dirty=true;saveSY();clearTimeout(pushT);pushT=setTimeout(push,2500)}
 async function push(){if(!syncOn())return;if(!navigator.onLine){setSync('Offline. Will sync when the internet is back.');return}
-  try{const r=await fetch(base()+'/rest/v1/study_state',{method:'POST',headers:Object.assign(hdr(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({id:SY.code.trim(),data:S,updated_at:new Date().toISOString()})});
-    if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,120));SY.dirty=false;setSync('Synced at '+nowT())}catch(e){setSync('Sync failed ('+e.message+'). Data is safe on this device.')}}
+  try{const r=await fetch(deskUrl(),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({json:JSON.stringify(S),updated:S.meta.updated||Date.now()})});
+    if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,80));SY.dirty=false;setSync('Synced at '+nowT())}catch(e){syncErr(e)}}
 async function pull(manual){if(!syncOn())return;if(!navigator.onLine){setSync('Offline. Using data on this device.');return}
-  try{const r=await fetch(base()+'/rest/v1/study_state?id=eq.'+encodeURIComponent(SY.code.trim())+'&select=data',{headers:hdr()});
-    if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,120));const rows=await r.json();
-    let remote=rows[0]&&rows[0].data;if(remote&&!remote.plan)remote=fromOld(remote);const ru=remote&&remote.meta?remote.meta.updated||0:0;
+  try{const remote=await getRemote();const ru=remote&&remote.meta?remote.meta.updated||0:0;
     if(remote&&ru>(S.meta.updated||0)&&!SY.dirty){S=remote;migrate();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();if(manual)toast('Loaded latest data from cloud');setSync('Synced at '+nowT())}
-    else if(!remote||(S.meta.updated||0)>ru||SY.dirty){await push()}else setSync('Synced at '+nowT())}catch(e){setSync('Sync failed ('+e.message+'). Data is safe on this device.')}}
+    else if(!remote||(S.meta.updated||0)>ru||SY.dirty){await push()}else setSync('Synced at '+nowT())}catch(e){syncErr(e)}}
+async function joinCode(code){code=code.trim();if(code.length<16){toast('That code is too short. Copy the full code from the other device.');return}
+  if(!navigator.onLine){toast('Connect to the internet first');return}
+  setSync('Checking code…');
+  try{const remote=await getRemote(code);if(!remote){setSync('No data found for that code. Check it and try again.');return}
+    SY.code=code;SY.dirty=false;S=remote;migrate();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}setSync('Synced at '+nowT());render();toast('Data loaded from the other device')}catch(e){syncErr(e)}}
 window.addEventListener('online',()=>{SY.dirty?push():pull()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){pull();if(S.plan&&S.plan.date!==today())render()}});
 
@@ -448,7 +455,14 @@ VIEWS.settings=()=>head('Settings','Study, sync & backup')+
     <div class="fgrid" style="margin-top:12px"><label class="f">Share of time for lectures (%)<input type="number" min="0" max="100" step="10" id="set-vshare" data-set="vshare" value="${esc(S.set.vshare)}"><span class="hint">Of the time left after revision</span></label><label class="f">Watch speed<select id="set-speed" data-set="speed">${[1,1.25,1.5,1.75,2].map(v=>`<option value="${v}" ${+S.set.speed===v?'selected':''}>${v}×</option>`).join('')}</select><span class="hint">Lecture minutes are divided by this</span></label></div>`)+
   sec('sems','Semesters',S.sems.map(s=>{const k=count(S.subjects.filter(x=>x.semId===s.id));return `<div class="plain row"><div style="flex:1;min-width:0"><b>${esc(s.name)}</b><div class="small muted">${k.d}/${k.n} topics done${s.exam?' · exams '+fmt(s.exam):''}</div></div>${s.id===S.activeSem?'<span class="tag good">✓ Current</span>':`<button class="btn sm primary" data-act="semSet" data-id="${s.id}">Make current</button>`}<button class="btn sm" data-act="semForm" data-id="${s.id}">Edit</button></div>`}).join('')+`<div class="plain"><button class="btn sm" data-act="semForm">+ Add semester</button></div>`,{flush:true})+
   sec('look','Look',`<div class="pill-opts">${['system','light','dark'].map(t=>`<label><input type="radio" name="theme" value="${t}" data-act="setTheme" ${S.set.theme===t?'checked':''}>${t==='system'?'Match phone':t[0].toUpperCase()+t.slice(1)}</label>`).join('')}</div>`)+
-  sec('sync','Cloud sync',`<div class="fgrid"><label class="f">Supabase project URL<input type="url" id="sy-url" value="${esc(SY.url)}" placeholder="https://xxxx.supabase.co"></label><label class="f">Anon public key<input type="password" id="sy-key" value="${esc(SY.key)}"></label><label class="f">Sync code<input type="text" id="sy-code" value="${esc(SY.code)}" placeholder="pragati-xxxxxx"><span class="hint">Same code on every device</span></label></div><div class="row" style="margin-top:12px"><button class="btn primary" data-act="syncSave">Save & sync now</button>${SY.code?'':'<button class="btn" data-act="syncCode">Make a sync code</button>'}</div><div class="small" id="syncst" style="margin-top:8px">${esc(syncOn()?SY.status||'Not synced yet':'Sync is off. Data is only on this device.')}</div>`)+
+  sec('sync','Cloud sync',syncOn()?`<div class="small muted">Sync code for this desk</div><div class="row" style="margin:4px 0 10px;flex-wrap:nowrap"><code id="sy-show" style="font-size:15px;padding:8px 10px;user-select:all;overflow-wrap:anywhere;flex:1;min-width:0">${esc(SY.code)}</code><button class="btn sm" data-act="copyCode">Copy</button></div>
+    <div class="small">On another phone or laptop, open the app → Settings → Cloud sync → <b>Use a code</b> and enter this code.</div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="syncNow">Sync now</button><button class="btn danger" data-act="syncOff">Turn off on this device</button></div>
+    <div class="small" id="syncst" style="margin-top:8px">${esc(SY.status||'Not synced yet')}</div>`
+   :`<div class="small" style="margin-bottom:12px">Sync is off. Data is only on this device.</div>
+    <div class="stack" style="display:flex;flex-direction:column;gap:12px"><div><b>First device</b><div class="small muted">Creates a code and uploads this device's data.</div><button class="btn primary" style="margin-top:6px" data-act="syncCreate">Turn on sync</button></div>
+    <div><b>Second device</b><div class="small muted">Enter the code from the first device. This device's data is replaced by the cloud copy.</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><input type="text" id="sy-join" placeholder="pragati-…" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn" data-act="syncJoin">Use a code</button></div></div></div>
+    <div class="small" id="syncst" style="margin-top:8px">${esc(SY.status||'')}</div>`)+
   sec('backup','Backup',`<div class="row"><button class="btn primary" data-act="export">Download backup</button><button class="btn" data-act="copyBk">Copy backup text</button><label class="btn" for="imp" tabindex="0">Import file</label><input type="file" id="imp" accept=".json,application/json" hidden><button class="btn" data-act="pasteImp">Paste backup</button></div>`)+
   sec('reset','Start over',`<div class="row"><button class="btn" data-act="addPack">Add back Sem 1 subjects</button><button class="btn danger" data-act="reset">Erase all progress</button></div>`);
 
@@ -563,8 +577,11 @@ const A={
   addPack:()=>{const before=S.subjects.length;loadPack();S.plan.date='';save();render();toast(S.subjects.length>before?'Sem 1 subjects added back':'All Sem 1 subjects are already there')},
   reset:el=>armed(el,()=>{S=fresh();loadPack();S.set.tutDone=true;save();go('today');toast('All progress erased')},'Tap again to erase'),
   walk:()=>walk(0),walkGo:el=>walk(+el.dataset.i),walkEnd:()=>{$('#walk-root').innerHTML='';S.set.tutDone=true;save(true);go('today')},
-  syncCode:()=>{$('#sy-code').value='pragati-'+Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,8)},
-  syncSave:()=>{SY.url=$('#sy-url').value.trim();SY.key=$('#sy-key').value.trim();SY.code=$('#sy-code').value.trim();saveSY();if(!syncOn()){setSync('Fill all three boxes to turn on sync.');return}setSync('Syncing…');pull(true)},
+  syncCreate:()=>{SY.code=newCode();SY.dirty=true;saveSY();setSync('Uploading…');render();push().then(render)},
+  syncJoin:()=>joinCode($('#sy-join').value),
+  syncNow:()=>{setSync('Syncing…');pull(true)},
+  syncOff:el=>armed(el,()=>{SY.code='';SY.status='';SY.dirty=false;saveSY();render();toast('Sync turned off on this device. Cloud copy is kept.')},'Tap again to turn off'),
+  copyCode:()=>{try{navigator.clipboard.writeText(SY.code).then(()=>toast('Code copied'),()=>toast('Select the code and copy it'))}catch(e){toast('Select the code and copy it')}},
   export:()=>{try{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='study-desk-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();toast('Backup downloaded')}catch(e){toast('Download blocked here. Use Copy backup text.')}},
   copyBk:()=>{const txt=JSON.stringify(S);const fb=()=>sheet({title:'Backup text',submit:false,body:`<div class="small">Select all and copy this text into a note or email.</div><textarea readonly style="min-height:240px">${esc(txt)}</textarea>`});try{navigator.clipboard.writeText(txt).then(()=>toast('Backup copied. Paste it into a note or email.'),fb)}catch(e){fb()}},
   pasteImp:()=>sheet({title:'Paste backup',submit:'Import',body:`<div class="small" style="color:var(--bad);font-weight:700">This replaces all data on this device.</div><label class="f">Backup text<textarea name="t" required style="min-height:200px"></textarea></label>`,onSubmit:d=>importText(d.t)}),

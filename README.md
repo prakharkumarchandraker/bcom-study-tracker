@@ -18,19 +18,21 @@ It must be served over https (both options do this) for offline mode and install
 
 After the first open it works fully offline.
 
-## 3. Turn on cloud sync (so data survives phone change and matches across devices)
+## 3. Cloud sync (Firebase Realtime Database, no login)
 
-1. Create a free project at https://supabase.com.
-2. SQL Editor → New query → paste `supabase.sql` → Run.
-3. Project Settings → API: copy the **Project URL** and the **anon public** key.
-4. In the app: More → Settings, backup & sync → paste URL and key → tap **Make a sync code** → **Save & sync now**.
-5. On the second device enter the **same** URL, key and sync code.
+One-time setup in the Firebase console:
 
-How it works: every change saves on the device first, then uploads ~3 seconds later. Offline changes upload when the internet returns. When the app opens it pulls the newer copy. If both devices were edited offline, the one edited last wins, so avoid editing on two devices while both are offline.
+1. Realtime Database → **Rules** tab → replace everything with the contents of `database.rules.json` → **Publish**.
+   This lets the app read and write only `/desks/<sync code>`. Nobody can list the codes, so the data is reachable only with the code.
 
-Keep the sync code private: anyone with the URL, key and code can read the data.
+In the app:
 
-Free Supabase projects pause after a week of no use. The app keeps working offline; open the Supabase dashboard and click Restore if sync shows errors. Weekly **Download backup** is the safety net.
+1. **First device** (e.g. Pragati's phone): Settings → Cloud sync → **Turn on sync**. A code like `pragati-xxxxxxxxxxxx` appears. Copy it and keep it somewhere safe (WhatsApp it to yourself).
+2. **Second device** (laptop): Settings → Cloud sync → paste the code → **Use a code**. The laptop's data is replaced by the cloud copy.
+
+After that, every change saves on the device first and uploads about 3 seconds later. Offline changes upload when the internet is back. When the app opens it pulls the newer copy. If both devices are edited while offline, the one edited last wins.
+
+Anyone who has the code can read and change the data, so don't post it publicly. Weekly **Download backup** is still the safety net.
 
 ## 4. Updating the app later
 
