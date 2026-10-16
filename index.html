@@ -149,17 +149,22 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--sunk);padding:1px
 .clock-big{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:40px;font-weight:600;line-height:1;letter-spacing:-.02em}
 .clock-big small{font-size:18px;color:var(--muted);margin-left:2px}
 .focus,.brk{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px))}
-.focus{background:var(--bg);color:var(--ink);gap:14px}
-.focus .fc{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:clamp(64px,22vw,200px);line-height:1;letter-spacing:-.03em}
+.focus{background:var(--bg);color:var(--ink);gap:12px;justify-content:flex-start;overflow-y:auto;padding-top:calc(64px + env(safe-area-inset-top,0px))}
+.flist{width:min(100%,560px);text-align:left;margin-top:8px}
+.focus .fc{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:clamp(56px,18vw,160px);line-height:1;letter-spacing:-.03em}
 .focus .fc small{font-size:.32em;color:var(--muted)}
 .focus .fd{font-family:var(--f-display);font-size:clamp(20px,5vw,32px)}
 .focus .fx{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:14px}
-.brk{background:var(--accent);color:var(--accent-ink);gap:16px}
+.brk{background:var(--accent);color:var(--accent-ink);gap:16px;z-index:80}
 .brk h2{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,9vw,64px);margin:0;line-height:1.1;text-wrap:balance}
 .brk p{font-size:18px;margin:0;max-width:30ch;opacity:.9}
 .brk .bt{font-family:var(--f-mono);font-size:clamp(40px,12vw,90px);font-weight:600;font-variant-numeric:tabular-nums}
 .brk .bb{background:var(--accent-ink);color:var(--accent);border:0;border-radius:14px;padding:16px 34px;font-size:20px;font-weight:700;cursor:pointer;min-width:220px}
 .brk .bs{background:transparent;color:var(--accent-ink);border:2px solid var(--accent-ink);border-radius:14px;padding:12px 24px;font-size:16px;font-weight:700;cursor:pointer;min-width:220px}
+.brk .bpane{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
+.brk .wopts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:min(100%,380px)}
+.brk .wopt{background:var(--accent-ink);color:var(--accent);border:0;border-radius:12px;padding:16px 0;font-weight:700;font-size:18px;cursor:pointer}
+.brk .row .bs{min-width:0;flex:1}
 .walker{width:84px;height:84px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 @media (prefers-reduced-motion:no-preference){.brk .walker{animation:bob 1s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-6px)}}}
 .switch{display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer}
@@ -178,8 +183,14 @@ code{font-family:var(--f-mono);font-size:13px;background:var(--sunk);padding:1px
 </div>
 <div id="sheet-root"></div>
 <div id="walk-root"></div>
-<div class="focus" id="focus" hidden role="dialog" aria-label="Focus clock"><button class="btn fx" data-act="focusOff">✕ Exit</button><div class="fd" id="f-date"></div><div class="fc" id="f-clock"></div><div class="tag acc" style="font-size:15px;padding:6px 12px" id="f-next"></div><div class="small muted" id="f-prog"></div></div>
-<div class="brk" id="brk" hidden role="alertdialog" aria-labelledby="brk-h"><div class="bt" id="brk-time"></div><svg class="walker" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9 21l2.5-6.5L14 17v4M11.5 14.5L12 9l-3 2-1.5 3M12 9l3 3 3 1"/></svg><h2 id="brk-h">Stand up and walk</h2><p>Stretch, drink some water and walk for 2–3 minutes.</p><button class="bb" data-act="brkDone">I'm up ✓</button><button class="bs" data-act="brkSnooze">Snooze 5 min</button></div>
+<div class="focus" id="focus" hidden role="dialog" aria-label="Focus clock"><button class="btn fx" data-act="focusOff">✕ Exit</button><div class="fd" id="f-date"></div><div class="fc" id="f-clock"></div><div class="tag acc" style="font-size:15px;padding:6px 12px" id="f-next"></div><div class="small muted" id="f-prog"></div><div class="flist" id="f-list"></div></div>
+<div class="brk" id="brk" hidden role="alertdialog" aria-labelledby="brk-h">
+<div class="bpane" id="brk-ask"><div class="bt" id="brk-time"></div><svg class="walker" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9 21l2.5-6.5L14 17v4M11.5 14.5L12 9l-3 2-1.5 3M12 9l3 3 3 1"/></svg><h2 id="brk-h">Stand up and walk</h2><p>Pick how long you will walk. The app rings when time is up.</p>
+<div class="wopts"><button class="wopt" data-act="brkWalk" data-m="1">1 min</button><button class="wopt" data-act="brkWalk" data-m="3">3 min</button><button class="wopt" data-act="brkWalk" data-m="5">5 min</button><button class="wopt" data-act="brkWalk" data-m="10">10 min</button></div>
+<div class="row" style="justify-content:center;width:min(100%,380px)"><button class="bs" data-act="brkDone">Skip</button><button class="bs" data-act="brkSnooze">Snooze 5 min</button></div></div>
+<div class="bpane" id="brk-run" hidden><h2>Walking…</h2><div class="bt" id="brk-cd">0:00</div><p>Keep moving. The app will ring when time is up.</p><button class="bs" data-act="brkStop">Stop early</button></div>
+<div class="bpane" id="brk-end" hidden><h2>Walk done</h2><p>Sit down, drink some water and get back to study.</p><button class="bb" data-act="brkBack">Back to study ✓</button></div>
+</div>
 <div class="toast" id="toast" hidden role="status"><span id="toast-msg"></span><button id="toast-undo" hidden>Undo</button></div>
 
 <script>
@@ -238,9 +249,9 @@ const PACK={ver:3,subjects:[
 
 /* ================= info texts ================= */
 const INFO={
- hours:'Pick how long you will study today. The app fills that time with revisions that are due and new topics. Change it any time; topics you already crossed stay crossed.',
+ hours:'Pick how long you will study today and, if you like, which subjects. Tap a subject to add or remove it; tap All subjects to go back to the automatic mix. The app fills that time with revisions that are due and new topics. Change it any time; topics you already crossed stay crossed.',
  revise:'Topics you already studied come back for revision automatically:<ul><li><b>Revision 1</b>: 3 days after you study a topic.</li><li><b>Revision 2</b>: 7 days after Revision 1.</li><li><b>Final revision</b>: every studied topic once more in the last revision days before the exam.</li></ul>Tap a topic when revised; it gets crossed out. Revisions take up to half your study time; the rest goes to new topics.',
- plan:'Tap ✕ to remove a topic from today; it comes back on another day. These topics are picked for you from every subject. Subjects whose exam is closer, or that have more left, get more topics.<ul><li>Tap a topic when you finish it. It gets crossed out and stays in the list.</li><li>Tapped by mistake? Tap it again, or press Undo.</li><li>Finished early? Tap <b>+ One more topic</b>.</li><li>Topics you skip today come back tomorrow.</li></ul>',
+ plan:'Topics not finished yesterday come back today first (marked Left from earlier). Want a specific topic? Tap + Choose a topic, or tap + Today next to it in the Syllabus tab. Tap ✕ to remove a topic from today; it comes back on another day. These topics are picked for you from every subject. Subjects whose exam is closer, or that have more left, get more topics.<ul><li>Tap a topic when you finish it. It gets crossed out and stays in the list.</li><li>Tapped by mistake? Tap it again, or press Undo.</li><li>Finished early? Tap <b>+ One more topic</b>.</li><li>Topics you skip today come back tomorrow.</li></ul>',
  exams:'Set the date your exams start. The app spreads the remaining topics over the days left, keeping the last few days free for revision. If a subject has its own exam date, set it in Syllabus → that subject → Edit.',
  progress:'How much of this semester is done. Tap Syllabus at the bottom to see every topic.',
  syllabus:'Every topic of the semester. Tap a topic to cross it out when done, tap again to undo. Use the buttons at the top to see only what is left or only what is done.',
@@ -248,7 +259,7 @@ const INFO={
  lect:'Lecture videos picked for today. Lectures linked to today\'s new topics come first, then the next lectures in order from each subject. Tap a lecture when watched to cross it out. Watch ↗ opens the video.',
  lectures:'Add lecture videos for any subject by pasting JSON. Tap <b>Get the Claude prompt</b>, copy it, paste it into Claude with your lecture names, lengths and links, and paste the JSON Claude gives back into <b>+ Add lectures</b>. Daily study time is then split between topics and lectures by the share below.',
  study:'Minutes per topic: about how long a new topic takes you. Minutes per revision: how long revising one topic takes. Today’s list uses it to decide how many topics fit in your study time. Revision days: the last days before the exam kept free for revision.',
- breaks:'Every 30 minutes on the clock (9:30, 10:00, 10:30…) the app shows a full-screen reminder with a sound and a phone notification. It works while the app is open. With the phone locked or the app closed, Android may delay or skip it, so use Focus clock while studying: it keeps the screen on and the reminders on time.',
+ breaks:'At the interval you set, counted from the From time (with 30 min from 7:00 that is 9:30, 10:00, 10:30…), the app shows a full-screen reminder with a sound and a phone notification. It works while the app is open. With the phone locked or the app closed, Android may delay or skip it, so use Focus clock while studying: it keeps the screen on and the reminders on time.',
  look:'Match phone follows your phone’s dark mode setting.',
  sync:'Your data always saves on this device first and works without internet. Cloud sync keeps a copy in Firebase so the same data shows on phone and laptop, and nothing is lost if the phone changes. No login: the sync code is the key. Keep it private, and write it down somewhere safe.',
  backup:'Download a backup file once a week and keep it in Google Drive or email it to yourself. Import replaces everything on this device with the backup.',
@@ -303,10 +314,13 @@ function daysFor(s){const t=today(),e=examOf(s);if(!e||e<t)return null;const L=d
 function pace(){let need=0,undated=0;for(const s of semSubs()){const left=topicsOf(s).filter(x=>!x.done).length;if(!left)continue;const d=daysFor(s);if(d==null){undated+=left;continue}need+=left/d}return {need:Math.ceil(need-1e-9),undated}}
 const MPT=()=>Math.max(10,+S.set.mpt||45), RMIN=()=>Math.max(5,+S.set.rmin||15);
 function fits(h){return Math.max(1,Math.floor((+h||0)*60/MPT()))}
+function todaySel(){return S.subjToday&&S.subjToday.date===today()?S.subjToday.ids.filter(id=>sub(id)&&sub(id).semId===S.activeSem):[]}
+function planSubs(){const sel=todaySel();return sel.length?semSubs().filter(s=>sel.includes(s.id)):semSubs()}
 function pickTopics(n,exclude){
+  const out=[];for(const id of S.pending||[]){if(out.length>=n)break;const f=findTopic(id);if(f&&!f.x.done&&planSubs().includes(f.s)&&!exclude.has(id)){out.push(id);exclude=new Set([...exclude,id])}}
   const pool=[];
-  for(const s of semSubs()){const left=topicsOf(s).filter(x=>!x.done&&!exclude.has(x.id));if(!left.length)continue;const d=daysFor(s);pool.push({s,left,d:d==null?90:d,e:examOf(s)||'9999',k:0})}
-  const out=[];const sc=p=>p.left.length/p.d/(1+p.k);
+  for(const s of planSubs()){const left=topicsOf(s).filter(x=>!x.done&&!exclude.has(x.id));if(!left.length)continue;const d=daysFor(s);pool.push({s,left,d:d==null?90:d,e:examOf(s)||'9999',k:0})}
+  const even=todaySel().length>0;const sc=p=>even?1/(1+p.k):p.left.length/p.d/(1+p.k);
   while(out.length<n&&pool.length){pool.sort((a,b)=>sc(b)-sc(a)||(a.e<b.e?-1:1));const p=pool[0];out.push(p.left.shift().id);p.k++;if(!p.left.length)pool.shift()}
   return out;
 }
@@ -323,7 +337,7 @@ function pickVideos(budget,topicIds,exclude){
   const out=[];let used=0;const tset=new Set(topicIds);
   const fitsIn=v=>!out.length&&budget>0||used+vMin(v)<=budget;
   for(const s of semSubs())for(const v of s.videos||[]){if(v.w||exclude.has(v.id)||!v.topicId||!tset.has(v.topicId))continue;if(!fitsIn(v))continue;out.push(v.id);used+=vMin(v)}
-  const pool=[];for(const s of semSubs()){const left=(s.videos||[]).filter(v=>!v.w&&!exclude.has(v.id)&&!out.includes(v.id));if(!left.length)continue;const d=daysFor(s);pool.push({left,d:d==null?90:d,e:examOf(s)||'9999',k:0})}
+  const pool=[];for(const s of planSubs()){const left=(s.videos||[]).filter(v=>!v.w&&!exclude.has(v.id)&&!out.includes(v.id));if(!left.length)continue;const d=daysFor(s);pool.push({left,d:d==null?90:d,e:examOf(s)||'9999',k:0})}
   const sc=p=>p.left.reduce((a,v)=>a+vMin(v),0)/p.d/(1+p.k);
   while(pool.length){pool.sort((a,b)=>sc(b)-sc(a)||(a.e<b.e?-1:1));const p=pool[0],v=p.left[0];if(!fitsIn(v))break;out.push(v.id);used+=vMin(v);p.left.shift();p.k++;if(!p.left.length)pool.shift()}
   return out}
@@ -333,13 +347,13 @@ function buildPlan(hours){
   const skip=old&&old.skip?old.skip.slice():[];
   let mins=(+hours||0)*60-keepNew.length*MPT()-keepRev.length*RMIN()-keepVid.reduce((a,id)=>a+vMin(findVideo(id).v),0);
   const ex=new Set(keepNew.concat(keepRev.map(r=>r.id),skip));
-  const leftNew=semSubs().reduce((a,s)=>a+topicsOf(s).filter(x=>!x.done).length,0);
+  const leftNew=planSubs().reduce((a,s)=>a+topicsOf(s).filter(x=>!x.done).length,0);
   const due=dueRevisions(ex);
   const revCap=leftNew?Math.max(1,Math.floor(Math.max(0,mins)*0.5/RMIN())):Math.floor(Math.max(0,mins)/RMIN());
   const rev=keepRev.concat(due.slice(0,revCap).map(r=>({id:r.id,k:r.k})));
   mins-=Math.min(due.length,revCap)*RMIN();
   rev.forEach(r=>ex.add(r.id));
-  const vLeft=vcount(semSubs()).left;
+  const vLeft=vcount(planSubs()).left;
   let vBudget=vLeft?(leftNew?Math.max(0,mins)*(Math.min(100,Math.max(0,+S.set.vshare||0))/100):Math.max(0,mins)):0;
   let tMins=Math.max(0,mins)-vBudget;
   let nNew=Math.floor(tMins/MPT());if(!keepNew.length&&!nNew&&leftNew&&(+hours||0)>0&&mins>0&&(!vLeft||mins>=MPT())){nNew=1;vBudget=Math.max(0,mins-MPT());tMins=MPT()}
@@ -355,7 +369,8 @@ function doneToday(){const t=today(),ids=[],rev=[],vids=[];
   for(const s of semSubs()){for(const x of topicsOf(s)){if(x.done===t)ids.push(x.id);for(const k of ['r1','r2','rf','rx'])if(x[k]===t)rev.push({id:x.id,k})}for(const v of s.videos||[])if(v.w===t)vids.push(v.id)}
   return {ids,rev,vids}}
 function mergeDoneToday(){const d=doneToday(),P=S.plan;for(const id of d.ids)if(!P.ids.includes(id))P.ids.push(id);for(const r of d.rev)if(!P.rev.some(q=>q.id===r.id&&q.k===r.k))P.rev.push(r);for(const id of d.vids)if(!P.vids.includes(id))P.vids.push(id)}
-function ensurePlan(){const t=today();if(!S.plan||S.plan.date!==t||!S.plan.rev||!S.plan.vids){buildPlan(S.hoursLog[t]||S.set.hours);save(true)}else{S.plan.ids=S.plan.ids.filter(id=>findTopic(id));S.plan.rev=S.plan.rev.filter(r=>findTopic(r.id));S.plan.vids=S.plan.vids.filter(id=>findVideo(id));S.plan.skip=S.plan.skip||[]}mergeDoneToday()}
+function rollPending(){const P=S.plan;S.pending=(S.pending||[]).concat((P&&P.ids)||[]).filter((id,i,a)=>a.indexOf(id)===i).filter(id=>{const f=findTopic(id);return f&&!f.x.done})}
+function ensurePlan(){const t=today();if(S.plan&&S.plan.date&&S.plan.date!==t)rollPending();if(!S.plan||S.plan.date!==t||!S.plan.rev||!S.plan.vids){buildPlan(S.hoursLog[t]||S.set.hours);save(true)}else{S.plan.ids=S.plan.ids.filter(id=>findTopic(id));S.plan.rev=S.plan.rev.filter(r=>findTopic(r.id));S.plan.vids=S.plan.vids.filter(id=>findVideo(id));S.plan.skip=S.plan.skip||[]}mergeDoneToday()}
 const revDone=(x,k)=>k==='rx'?x.rx===today():x[k]===today();
 
 /* ================= sync (Firebase Realtime Database, no login) =================
@@ -397,6 +412,9 @@ const head=(title,eyebrow)=>`<div class="top"><div style="min-width:0"><div clas
 const sec=(k,title,body,o)=>{o=o||{};const on=UI.info.has(k);return `<section class="section"><div class="sh"><h2>${title}</h2>${o.right||''}<button class="info-btn" data-act="info" data-k="${k}" aria-label="What is this?" aria-expanded="${on}">i</button></div><div class="info" ${on?'':'hidden'}>${INFO[k]||''}</div><div class="sb${o.flush?' flush':''}">${body}</div></section>`};
 const bar=(d,n)=>`<div class="bar"><i style="width:${n?(d*100/n).toFixed(1):0}%"></i></div>`;
 function daysTag(d){if(!d)return '<span class="tag warn">No exam date</span>';const n=diff(today(),d);if(n<0)return `<span class="tag">Exam was ${fmt(d)}</span>`;return `<span class="tag ${n<=7?'bad':n<=21?'warn':'acc'}">${n===0?'Exam today':n===1?'Exam tomorrow':n+' days'} · ${fmt(d)}</span>`}
+function addTodayWrap(x,html){if(x.done)return html;const inPlan=S.plan&&S.plan.date===today()&&S.plan.ids.includes(x.id);return `<div class="vrow">${html}<span class="watch">${inPlan?'<span class="tag acc">Today</span>':`<button type="button" class="btn sm" data-act="addToday" data-id="${x.id}">+ Today</button>`}</span></div>`}
+function addToPlan(id){ensurePlan();const P=S.plan;if(!P.ids.includes(id))P.ids.push(id);P.skip=(P.skip||[]).filter(x=>x!==id);save();render();const f=findTopic(id);toast('Added to today: '+(f?f.x.name.slice(0,40):''))}
+function pickOpts(sid){const s=sub(sid);if(!s)return '';const inPlan=new Set((S.plan&&S.plan.ids)||[]);return s.units.map(u=>{const ts=u.topics.filter(x=>!x.done&&!inPlan.has(x.id));return ts.length?`<optgroup label="${esc(u.name)}">${ts.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</optgroup>`:''}).join('')}
 function dropBtn(type,id,k){return `<span class="watch"><button type="button" class="btn sm" data-act="dropItem" data-type="${type}" data-id="${id}" ${k?`data-k="${k}"`:''} aria-label="Remove from today" title="Remove from today">✕</button></span>`}
 function withDrop(html,type,id,k,done){return done?html:`<div class="vrow">${html}${dropBtn(type,id,k)}</div>`}
 function vrow(v,s,drop){const done=!!v.w,t=v.topicId&&findTopic(v.topicId);return `<div class="vrow"><button type="button" class="trow${done?' done':''}" data-act="vidTap" data-id="${v.id}" aria-pressed="${done}"><span class="box" aria-hidden="true">${done?'✓':''}</span><span class="t"><span class="nm">${esc(v.title)}</span><span class="meta"><span class="tag acc num">▶ ${vMin(v)} min</span><span class="tag">${esc(s.name)}</span>${t?`<span class="tag">${esc(t.x.name.slice(0,40))}</span>`:''}${done&&v.w!==today()?`<span class="tag good">Watched ${fmt(v.w)}</span>`:''}</span></span></button>${v.url?`<span class="watch"><a class="btn sm" href="${esc(v.url)}" target="_blank" rel="noopener">Watch ↗</a></span>`:''}${drop&&!done?dropBtn('v',v.id):''}</div>`}
@@ -414,23 +432,27 @@ const tFmt=d=>d.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'});
 function clockHTML(d,secs){const h=d.getHours()%12||12,ap=d.getHours()<12?'am':'pm';return `${h}:${z(d.getMinutes())}${secs?`<small>:${z(d.getSeconds())}</small>`:''}<small> ${ap}</small>`}
 const toMin=t=>{const p=String(t||'0:0').split(':');return (+p[0]||0)*60+(+p[1]||0)};
 function inHours(m){const a=toMin(S.set.brkFrom),b=toMin(S.set.brkTo);return a<=b?(m>=a&&m<b):(m>=a||m<b)}
-function nextBreak(){const ev=+S.set.brkEvery||30,now=new Date(),m=now.getHours()*60+now.getMinutes();for(let k=1;k<=1440/ev+1;k++){const t=(Math.floor(m/ev)+k)*ev;if(inHours(t%1440)){const d=new Date(now);d.setHours(0,0,0,0);d.setMinutes(t);return d}}return null}
+const EV=()=>Math.min(240,Math.max(5,Math.round(+S.set.brkEvery||30)));
+function relOf(m){const a=toMin(S.set.brkFrom);return ((m-a)%1440+1440)%1440}
+function nextBreak(){const ev=EV(),now=new Date(),m=now.getHours()*60+now.getMinutes();let t=m+(ev-relOf(m)%ev);for(let k=0;k<=1440/ev+2;k++,t+=ev){if(inHours(t%1440)&&relOf(t%1440)%ev===0){const d=new Date(now);d.setHours(0,0,0,0);d.setMinutes(t);return d}}return null}
 function nextBreakText(){if(!S.set.brkOn)return 'Break reminders are off';if(BRK.snooze)return 'Snoozed until '+tFmt(new Date(BRK.snooze));const d=nextBreak();if(!d)return '';const mins=Math.max(0,Math.ceil((d-new Date())/60000));return `Next break at ${tFmt(d)} · in ${mins} min`}
 function notifStatus(){if(!('Notification' in window))return 'This browser does not support notifications. The full-screen reminder and sound still work.';const p=Notification.permission;return p==='granted'?'Notifications are allowed.':p==='denied'?'Notifications are blocked. Allow them in the browser’s site settings to get them.':'Tap “Allow notifications” so the reminder also shows in the phone’s notification bar.'}
-const BRK={open:false,snooze:0,rep:null,reps:0};
+const BRK={open:false,snooze:0,rep:null,reps:0,walkEnd:0};
+function walkTick(){if(!BRK.walkEnd)return;const left=BRK.walkEnd-Date.now();if(left<=0){BRK.walkEnd=0;brkPane('end');chime();try{navigator.vibrate&&navigator.vibrate([500,200,500,200,500])}catch(e){}sysNotify('Walk done','Back to study.');clearInterval(BRK.rep);BRK.reps=0;BRK.rep=setInterval(()=>{if(!BRK.open||++BRK.reps>2){clearInterval(BRK.rep);return}chime()},30000);return}const sec=Math.ceil(left/1000);$('#brk-cd').textContent=Math.floor(sec/60)+':'+z(sec%60)}
 const BKEY='pragati-desk-brk';
 let AC=null;function unlockAudio(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
 document.addEventListener('pointerdown',unlockAudio,{passive:true});
 function chime(){if(!S.set.brkSound)return;try{unlockAudio();if(!AC)return;const t0=AC.currentTime;[784,988,1175,988,1175].forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;const st=t0+i*0.22;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.35,st+0.03);g.gain.exponentialRampToValueAtTime(0.0001,st+0.5);o.connect(g).connect(AC.destination);o.start(st);o.stop(st+0.55)})}catch(e){}}
-function sysNotify(){try{if(!('Notification' in window)||Notification.permission!=='granted')return;const opt={body:'Stretch, drink water, walk for 2–3 minutes.',tag:'break',renotify:true,requireInteraction:true,vibrate:[300,150,300,150,300],icon:'icon-192.png',badge:'icon-192.png'};
-  if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>{if(r)r.showNotification('Stand up and walk',opt);else new Notification('Stand up and walk',opt)}).catch(()=>{});else new Notification('Stand up and walk',opt)}catch(e){}}
-function showBreak(){BRK.open=true;const el=$('#brk');el.hidden=false;$('#brk-time').textContent=tFmt(new Date());chime();try{navigator.vibrate&&navigator.vibrate([400,200,400,200,400])}catch(e){}sysNotify();
+function sysNotify(title,body){title=title||'Stand up and walk';try{if(!('Notification' in window)||Notification.permission!=='granted')return;const opt={body:body||'Pick a walk time in the app: 1, 3, 5 or 10 min.',tag:'break',renotify:true,requireInteraction:true,vibrate:[300,150,300,150,300],icon:'icon-192.png',badge:'icon-192.png'};
+  if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>{if(r)r.showNotification(title,opt);else new Notification(title,opt)}).catch(()=>{});else new Notification(title,opt)}catch(e){}}
+function brkPane(p){for(const k of ['ask','run','end'])$('#brk-'+k).hidden=k!==p}
+function showBreak(){BRK.open=true;const el=$('#brk');el.hidden=false;brkPane('ask');$('#brk-time').textContent=tFmt(new Date());chime();try{navigator.vibrate&&navigator.vibrate([400,200,400,200,400])}catch(e){}sysNotify();
   clearInterval(BRK.rep);BRK.reps=0;BRK.rep=setInterval(()=>{if(!BRK.open||++BRK.reps>2){clearInterval(BRK.rep);return}chime();try{navigator.vibrate&&navigator.vibrate([400,200,400])}catch(e){}},40000);
-  setTimeout(()=>{const b=el.querySelector('.bb');b&&b.focus()},50)}
-function hideBreak(){BRK.open=false;$('#brk').hidden=true;clearInterval(BRK.rep);try{navigator.serviceWorker&&navigator.serviceWorker.getRegistration&&navigator.serviceWorker.getRegistration().then(r=>r&&r.getNotifications&&r.getNotifications({tag:'break'}).then(ns=>ns.forEach(n=>n.close()))).catch(()=>{})}catch(e){}}
-function checkBreak(){if(!S.set.brkOn||BRK.open)return;const now=new Date();
+  setTimeout(()=>{const b=el.querySelector('.wopt');b&&b.focus()},50)}
+function hideBreak(){BRK.open=false;BRK.walkEnd=0;$('#brk').hidden=true;clearInterval(BRK.rep);try{navigator.serviceWorker&&navigator.serviceWorker.getRegistration&&navigator.serviceWorker.getRegistration().then(r=>r&&r.getNotifications&&r.getNotifications({tag:'break'}).then(ns=>ns.forEach(n=>n.close()))).catch(()=>{})}catch(e){}}
+function checkBreak(){if(!S.set.brkOn||BRK.open||BRK.walkEnd)return;const now=new Date();
   if(BRK.snooze){if(+now>=BRK.snooze){BRK.snooze=0;showBreak()}return}
-  const ev=+S.set.brkEvery||30,m=now.getHours()*60+now.getMinutes(),slot=m-(m%ev);if(m-slot>2||!inHours(slot))return;
+  const ev=EV(),m=now.getHours()*60+now.getMinutes(),off=relOf(m)%ev,slot=(m-off+1440)%1440;if(off>2||!inHours(slot))return;
   const key=today()+'@'+slot;let last='';try{last=localStorage.getItem(BKEY)||''}catch(e){}if(last===key)return;try{localStorage.setItem(BKEY,key)}catch(e){}showBreak()}
 let WL=null;async function wake(on){try{if(on&&'wakeLock' in navigator){WL=await navigator.wakeLock.request('screen')}else if(!on&&WL){await WL.release();WL=null}}catch(e){}}
 function goFull(el){try{const r=(el||document.documentElement).requestFullscreen;if(r)return r.call(el||document.documentElement).catch(()=>{})}catch(e){}}
@@ -438,7 +460,7 @@ function exitFull(){try{if(document.fullscreenElement)document.exitFullscreen().
 function focusProg(){const c=count(semSubs());const P=S.plan||{ids:[]};const done=(P.ids||[]).filter(id=>{const f=findTopic(id);return f&&f.x.done}).length;return `Today: ${done} of ${(P.ids||[]).length} new topics done · Semester: ${c.d}/${c.n}`}
 function clockTick(){const d=new Date();const a=$('#t-clock');if(a)a.innerHTML=clockHTML(d,false);const nb=$('#t-next');if(nb)nb.textContent=nextBreakText();
   if(!$('#focus').hidden){$('#f-clock').innerHTML=clockHTML(d,true);$('#f-date').textContent=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});$('#f-next').textContent=nextBreakText();$('#f-prog').textContent=focusProg()}
-  checkBreak()}
+  walkTick();checkBreak()}
 setInterval(clockTick,1000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkBreak();if(!$('#focus').hidden)wake(true)}});
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&!$('#focus').hidden){/* leaving fullscreen keeps focus view; user exits with ✕ */}});
@@ -446,7 +468,14 @@ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement
 /* ================= router ================= */
 let R={v:'today',p:{}};
 function go(v,p){R={v,p:p||{}};render();window.scrollTo(0,0)}
-function render(){applyTheme();const V=VIEWS[R.v]||VIEWS.today;$('#view').innerHTML=V(R.p);
+function renderFocus(){const box=$('#f-list');if(!box||$('#focus').hidden)return;ensurePlan();const P=S.plan;
+  const items=P.ids.map(id=>findTopic(id)).filter(Boolean),revs=P.rev.map(r=>Object.assign({k:r.k},findTopic(r.id))).filter(r=>r.x),vids=P.vids.map(id=>findVideo(id)).filter(Boolean);
+  const m=f=>`<span class="tag">${esc(f.s.name.split(' (')[0])}</span>`;
+  const part=(title,html)=>html?`<section class="section"><div class="sh"><h2>${title}</h2></div><div class="sb flush">${html}</div></section>`:'';
+  box.innerHTML=part('Revise today',revs.map(r=>trow(r.x,r.s,{rk:r.k,meta:m(r)+`<span class="tag good">${r.k==='rx'?'Extra revision':RK[r.k]}</span>`})).join(''))+
+    part('New topics today',items.map(f=>trow(f.x,f.s,{meta:m(f)})).join(''))+
+    part('Lectures today',vids.map(o=>vrow(o.v,o.s)).join(''))||'<div class="empty">Nothing planned for today.</div>'}
+function render(){applyTheme();const V=VIEWS[R.v]||VIEWS.today;$('#view').innerHTML=V(R.p);renderFocus();
   const n={today:'today',syllabus:'syllabus'}[R.v]||'settings';document.querySelectorAll('#tabs [data-nav]').forEach(b=>b.classList.toggle('on',b.dataset.nav===n))}
 
 /* ================= views ================= */
@@ -463,6 +492,9 @@ VIEWS.today=()=>{
   const first=exams[0];
   const presets=[1,2,3,4,5,6];
   const hoursBody=`<div class="chips" role="group" aria-label="Study hours today">${presets.map(v=>`<button class="chip${+h===v?' on':''}" data-act="setHours" data-h="${v}" aria-pressed="${+h===v}">${v} hr</button>`).join('')}<input type="number" id="hrs-custom" min="0.5" max="16" step="0.5" value="${presets.includes(+h)?'':esc(h)}" placeholder="Other" aria-label="Other hours"></div>
+    <div class="small" style="font-weight:700;color:var(--muted);margin:14px 0 6px">Which subjects today?</div>
+    <div class="chips" role="group" aria-label="Subjects today"><button class="chip${todaySel().length?'':' on'}" data-act="subjToggle" data-id="all" aria-pressed="${!todaySel().length}">All subjects</button>${subs.filter(s=>topicsOf(s).length).map(s=>{const on=todaySel().includes(s.id);return `<button class="chip${on?' on':''}" data-act="subjToggle" data-id="${s.id}" aria-pressed="${on}">${esc(s.name.split(' (')[0])}</button>`}).join('')}</div>
+    <div class="small muted" style="margin-top:6px">New topics and lectures come only from the subjects you pick. Revisions that are due still show from every subject.</div>
     <div class="small muted" style="margin-top:8px">New topic ≈ ${S.set.mpt} min, revision ≈ ${S.set.rmin} min${vcount(semSubs()).n?`, lectures get ${S.set.vshare}% of the time left after revision`:''}. Change these in Settings.</div>`;
   const meta=(f,extra)=>`<span class="tag">${esc(f.s.name)}</span><span class="tag">${esc(f.u.name.split(' · ')[0])}</span>${extra||''}`;
   const revBody=revs.length?revs.map(r=>withDrop(trow(r.x,r.s,{rk:r.k,meta:meta(r,`<span class="tag good">${r.k==='rx'?'Extra revision':RK[r.k]}</span>`)}),'r',r.x.id,r.k,revDone(r.x,r.k))).join('')+
@@ -471,9 +503,9 @@ VIEWS.today=()=>{
   let newBody;
   if(!c.n)newBody=`<div class="empty"><b>No subjects in ${esc(sem().name)}</b>Add subjects and their syllabus in the Syllabus tab.</div>`;
   else if(!c.left)newBody=`<div class="empty"><b>All topics studied</b>Only revision from now on.</div>`;
-  else if(!items.length)newBody=`<div class="empty">Today's time is full with revision. Tap + One more topic if you have extra time.</div><div class="plain"><button class="btn sm" data-act="oneMore">+ One more topic</button></div>`;
-  else newBody=items.map(f=>withDrop(trow(f.x,f.s,{meta:meta(f,f.x.done?'<span class="tag good">✓ Done today</span>':'')}),'t',f.x.id,'',!!f.x.done)).join('')+
-    `<div class="plain row between"><span class="small muted"><b class="num">${doneN}</b> of ${items.length} done</span><button class="btn sm" data-act="oneMore">+ One more topic</button></div>`;
+  else if(!items.length)newBody=`<div class="empty">Today's time is full with revision. Tap + One more topic if you have extra time.</div><div class="plain row"><button class="btn sm" data-act="pickTopic">+ Choose a topic</button><button class="btn sm" data-act="oneMore">+ One more topic</button></div>`;
+  else newBody=items.map(f=>withDrop(trow(f.x,f.s,{meta:meta(f,f.x.done?'<span class="tag good">✓ Done today</span>':(S.pending||[]).includes(f.x.id)?'<span class="tag warn">Left from earlier</span>':'')}),'t',f.x.id,'',!!f.x.done)).join('')+
+    `<div class="plain row between"><span class="small muted"><b class="num">${doneN}</b> of ${items.length} done</span><span class="row"><button class="btn sm" data-act="pickTopic">+ Choose a topic</button><button class="btn sm" data-act="oneMore">+ One more topic</button></span></div>`;
   let paceNote='';
   if(c.left&&pc.need){paceNote=items.length<pc.need?`<div class="note warn">To finish every topic before the exam with ${S.set.buffer} revision days, you need about <b>${pc.need} new topics a day</b>. Study a bit longer, or lower minutes per topic in Settings.</div>`:`<div class="note good">At ${hrs(h)} a day you are on track to finish before the exam.</div>`}
   if(pc.undated)paceNote+=`<div class="note acc">Set the exam start date below so the app can pace your topics.</div>`;
@@ -500,7 +532,7 @@ VIEWS.syllabus=()=>{
   const subjBlock=s=>{const k=count([s]),open=S.open[s.id]===true;
     let body='';
     if(open){body=s.units.map(u=>{const ts=u.topics.filter(x=>F==='all'||(F==='left'?!x.done:!!x.done));if(!ts.length)return '';const ud=u.topics.filter(x=>x.done).length;
-      return `<div class="unit-h"><span>${esc(u.name)}</span><span class="num">${ud}/${u.topics.length}</span></div>`+ts.map(x=>trow(x,s,{meta:x.done?`<span class="tag good">Studied ${fmt(x.done)}</span>${x.r1?'<span class="tag good">Rev 1 ✓</span>':''}${x.r2?'<span class="tag good">Rev 2 ✓</span>':''}${x.rf?'<span class="tag good">Final ✓</span>':''}${(()=>{const d=revDue(x,s,today());return d?`<span class="tag ${d.on<=today()?'warn':''}">${RK[d.k]} ${d.on<=today()?'due':'on '+fmt(d.on)}</span>`:''})()}`:''})).join('')}).join('')||`<div class="empty">${F==='left'?'Nothing left in this subject.':F==='done'?'Nothing done yet.':'No topics yet. Tap Edit to add the syllabus.'}</div>`;
+      return `<div class="unit-h"><span>${esc(u.name)}</span><span class="num">${ud}/${u.topics.length}</span></div>`+ts.map(x=>addTodayWrap(x,trow(x,s,{meta:x.done?`<span class="tag good">Studied ${fmt(x.done)}</span>${x.r1?'<span class="tag good">Rev 1 ✓</span>':''}${x.r2?'<span class="tag good">Rev 2 ✓</span>':''}${x.rf?'<span class="tag good">Final ✓</span>':''}${(()=>{const d=revDue(x,s,today());return d?`<span class="tag ${d.on<=today()?'warn':''}">${RK[d.k]} ${d.on<=today()?'due':'on '+fmt(d.on)}</span>`:''})()}`:''}))).join('')}).join('')||`<div class="empty">${F==='left'?'Nothing left in this subject.':F==='done'?'Nothing done yet.':'No topics yet. Tap Edit to add the syllabus.'}</div>`;
       const vl=(s.videos||[]).filter(v=>F==='all'||(F==='left'?!v.w:!!v.w));if((s.videos||[]).length){const k2=vcount([s]);body+=`<div class="unit-h"><span>▶ Lectures</span><span class="num">${k2.w}/${k2.n} · ${hrs(k2.left/60)} left</span></div>`+(vl.map(v=>vrow(v,s)).join('')||'<div class="empty">Nothing here.</div>')}
       body+=`<div class="plain row between">${daysTag(examOf(s))}<button class="btn sm" data-act="subForm" data-id="${s.id}">Edit subject</button></div>`}
     return `<section class="section"><button type="button" class="subj-h" data-act="toggleSub" data-id="${s.id}" aria-expanded="${open}"><span class="t"><span class="nm">${esc(s.name)}</span><span class="row small muted" style="margin-top:2px;gap:6px"><span class="tag">${esc(s.kind)}</span><span class="num">${k.d}/${k.n} done</span></span><span style="display:block;margin-top:6px">${bar(k.d,k.n)}</span></span><span class="caret">${open?'Close ▴':'Open ▾'}</span></button>${open?`<div style="border-top:1px solid var(--line)">${body}</div>`:''}</section>`};
@@ -519,7 +551,7 @@ VIEWS.settings=()=>head('Settings','Study, sync & backup')+
     <div class="fgrid" style="margin-top:12px"><label class="f">Share of time for lectures (%)<input type="number" min="0" max="100" step="10" id="set-vshare" data-set="vshare" value="${esc(S.set.vshare)}"><span class="hint">Of the time left after revision</span></label><label class="f">Watch speed<select id="set-speed" data-set="speed">${[1,1.25,1.5,1.75,2].map(v=>`<option value="${v}" ${+S.set.speed===v?'selected':''}>${v}×</option>`).join('')}</select><span class="hint">Lecture minutes are divided by this</span></label></div>`)+
   sec('sems','Semesters',S.sems.map(s=>{const k=count(S.subjects.filter(x=>x.semId===s.id));return `<div class="plain row"><div style="flex:1;min-width:0"><b>${esc(s.name)}</b><div class="small muted">${k.d}/${k.n} topics done${s.exam?' · exams '+fmt(s.exam):''}</div></div>${s.id===S.activeSem?'<span class="tag good">✓ Current</span>':`<button class="btn sm primary" data-act="semSet" data-id="${s.id}">Make current</button>`}<button class="btn sm" data-act="semForm" data-id="${s.id}">Edit</button></div>`}).join('')+`<div class="plain"><button class="btn sm" data-act="semForm">+ Add semester</button></div>`,{flush:true})+
   sec('breaks','Break reminders',`<label class="switch"><input type="checkbox" id="brk-on" ${S.set.brkOn?'checked':''}> Remind me to stand up and walk</label>
-    <div class="fgrid" style="margin-top:12px"><label class="f">Every<select id="set-brkEvery" data-set="brkEvery">${[20,30,45,60].map(v=>`<option value="${v}" ${+S.set.brkEvery===v?'selected':''}>${v} min</option>`).join('')}</select><span class="hint">On the clock: :00 and :30 for 30 min</span></label><label class="f">From<input type="time" id="brk-from" value="${esc(S.set.brkFrom)}"></label><label class="f">Until<input type="time" id="brk-to" value="${esc(S.set.brkTo)}"></label></div>
+    <div class="fgrid" style="margin-top:12px"><label class="f">Every (minutes)<input type="number" min="5" max="240" step="1" inputmode="numeric" id="set-brkEvery" data-set="brkEvery" value="${esc(S.set.brkEvery)}"><span class="hint">Any number, e.g. 11, 15, 30. Counted from the From time.</span></label><label class="f">From<input type="time" id="brk-from" value="${esc(S.set.brkFrom)}"></label><label class="f">Until<input type="time" id="brk-to" value="${esc(S.set.brkTo)}"></label></div>
     <label class="switch" style="margin-top:12px"><input type="checkbox" id="brk-sound" ${S.set.brkSound?'checked':''}> Play a sound</label>
     <div class="small" style="margin-top:10px" id="notif-st">${esc(notifStatus())}</div>
     <div class="row" style="margin-top:12px"><button class="btn" data-act="brkTest">Test reminder now</button>${'Notification' in window&&Notification.permission==='default'?'<button class="btn" data-act="notifAsk">Allow notifications</button>':''}</div>`)+
@@ -626,15 +658,20 @@ function tapTopic(id){const f=findTopic(id);if(!f)return;const snap={done:f.x.do
 const A={
   nav:el=>go(el.dataset.v),
   fs:()=>{if(document.fullscreenElement)exitFull();else{const p=goFull();if(!p&&!document.fullscreenEnabled)toast('Full screen is not available here. Install the app for a full-screen view.')}},
-  focusOn:()=>{unlockAudio();$('#focus').hidden=false;clockTick();goFull();wake(true)},
+  focusOn:()=>{unlockAudio();$('#focus').hidden=false;renderFocus();clockTick();goFull();wake(true)},
   focusOff:()=>{$('#focus').hidden=true;exitFull();wake(false)},
-  brkDone:()=>{hideBreak();toast('Nice. Next break '+(nextBreak()?'at '+tFmt(nextBreak()):'later'))},
+  brkDone:()=>{hideBreak();toast('Skipped. Next break '+(nextBreak()?'at '+tFmt(nextBreak()):'later'))},
+  brkWalk:el=>{unlockAudio();clearInterval(BRK.rep);BRK.walkEnd=Date.now()+(+el.dataset.m)*60000;brkPane('run');walkTick();try{navigator.serviceWorker&&navigator.serviceWorker.getRegistration&&navigator.serviceWorker.getRegistration().then(r=>r&&r.getNotifications&&r.getNotifications({tag:'break'}).then(ns=>ns.forEach(n=>n.close()))).catch(()=>{})}catch(e){}},
+  brkStop:()=>{BRK.walkEnd=0;brkPane('end')},
+  brkBack:()=>{hideBreak();toast('Back to study. Next break '+(nextBreak()?'at '+tFmt(nextBreak()):'later'))},
   brkSnooze:()=>{hideBreak();BRK.snooze=Date.now()+5*60000;toast('Snoozed for 5 minutes')},
   brkTest:()=>{unlockAudio();showBreak()},
   notifAsk:()=>{try{Notification.requestPermission().then(()=>render())}catch(e){toast('Notifications are not supported here')}},
   info:el=>{const k=el.dataset.k,on=!UI.info.has(k);on?UI.info.add(k):UI.info.delete(k);const box=el.closest('.section').querySelector(':scope > .info');if(box)box.hidden=!on;el.setAttribute('aria-expanded',on)},
   theme:()=>{const dark=matchMedia('(prefers-color-scheme: dark)').matches;const cur=S.set.theme==='system'?(dark?'dark':'light'):S.set.theme;S.set.theme=cur==='dark'?'light':'dark';save();render()},
   setTheme:el=>{S.set.theme=el.value;save();render()},
+  subjToggle:el=>{const id=el.dataset.id;let ids=todaySel().slice();if(id==='all')ids=[];else ids=ids.includes(id)?ids.filter(x=>x!==id):ids.concat(id);if(ids.length&&ids.length===semSubs().filter(s=>topicsOf(s).length).length)ids=[];
+    S.subjToday={date:today(),ids};ensurePlan();buildPlan(S.plan.hours);save();render()},
   setHours:el=>{const h=+el.dataset.h;S.hoursLog[today()]=h;buildPlan(h);save();render()},
   tapTopic:el=>tapTopic(el.dataset.id),
   revTopic:el=>{const f=findTopic(el.dataset.id),k=el.dataset.k;if(!f)return;const prev=f.x[k]||'';f.x[k]=prev===today()?'':today();save();render();toast(f.x[k]?'✓ Revised':'Marked not revised',()=>{f.x[k]=prev;save();render()})},
@@ -646,6 +683,10 @@ const A={
   dropItem:el=>{const P=S.plan,id=el.dataset.id,ty=el.dataset.type,k=el.dataset.k;const snap=JSON.stringify(P);
     if(ty==='t')P.ids=P.ids.filter(x=>x!==id);else if(ty==='r')P.rev=P.rev.filter(r=>!(r.id===id&&r.k===k));else P.vids=P.vids.filter(x=>x!==id);
     P.skip=P.skip||[];if(!P.skip.includes(id))P.skip.push(id);save();render();toast('Removed from today. It will come back another day.',()=>{S.plan=JSON.parse(snap);save();render()})},
+  addToday:el=>addToPlan(el.dataset.id),
+  pickTopic:()=>{const subs=semSubs().filter(s=>topicsOf(s).some(x=>!x.done));if(!subs.length){toast('No topics left');return}
+    sheet({title:'Choose a topic for today',submit:'Add to today',body:`<label class="f">Subject<select id="pick-sub" name="sub">${subs.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label><label class="f">Topic<select id="pick-top" name="top">${pickOpts(subs[0].id)}</select></label>`,
+      onSubmit:d=>{if(!d.top)return false;closeSheet();addToPlan(d.top);return false}})},
   oneMore:()=>{const ex=new Set(S.plan.ids.concat(S.plan.rev.map(r=>r.id),S.plan.skip||[]));const more=pickTopics(1,ex);if(more.length){S.plan.ids.push(more[0])}else{const r=extraRevisions(1,ex);if(!r.length){toast('Nothing more to add');return}S.plan.rev.push(r[0])}save();render()},
   toggleSub:el=>{const id=el.dataset.id;S.open[id]=S.open[id]!==true;save(true);render()},
   openAll:el=>{for(const s of semSubs())S.open[s.id]=el.dataset.o==='1';save(true);render()},
@@ -681,12 +722,13 @@ document.addEventListener('change',e=>{const t=e.target;
   else if(t.id==='brk-on'){S.set.brkOn=t.checked;save();if(t.checked&&'Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(()=>render())}catch(e){}}render();toast(t.checked?'Break reminders on':'Break reminders off')}
   else if(t.id==='brk-sound'){S.set.brkSound=t.checked;save();if(t.checked){unlockAudio();chime()}}
   else if(t.id==='brk-from'||t.id==='brk-to'){if(t.value){S.set[t.id==='brk-from'?'brkFrom':'brkTo']=t.value;save();toast('Saved')}}
+  else if(t.id==='pick-sub'){const p=$('#pick-top');if(p)p.innerHTML=pickOpts(t.value)}
   else if(t.id==='sem-exam'){sem().exam=t.value;S.plan.date='';save();render();toast(t.value?'Exam date saved':'Exam date cleared')}
   else if(t.id==='hrs-custom'){const h=Math.min(16,Math.max(0.5,parseFloat(t.value)||0));if(!parseFloat(t.value))return;S.hoursLog[today()]=h;buildPlan(h);save();render()}
   else if(t.dataset.set){const v=parseFloat(t.value);if(isNaN(v))return;S.set[t.dataset.set]=v;S.plan.date='';save();toast('Saved')}
   else if(t.id==='imp'&&t.files[0]){const r=new FileReader();r.onload=()=>importText(r.result);r.readAsText(t.files[0]);t.value=''}
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(BRK.open){hideBreak();return}if(!$('#focus').hidden){$('#focus').hidden=true;exitFull();wake(false);return}}if(e.key==='Escape'&&SH)closeSheet();if(e.key==='Enter'&&e.target.tagName==='LABEL'&&e.target.htmlFor==='imp')$('#imp').click()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(BRK.open&&!BRK.walkEnd){hideBreak();return}if(!$('#focus').hidden){$('#focus').hidden=true;exitFull();wake(false);return}}if(e.key==='Escape'&&SH)closeSheet();if(e.key==='Enter'&&e.target.tagName==='LABEL'&&e.target.htmlFor==='imp')$('#imp').click()});
 
 render();
 if(!S.set.tutDone)setTimeout(()=>walk(0),300);
