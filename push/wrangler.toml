@@ -1,0 +1,19 @@
+name = "study-desk-push"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# Every minute: send due break / walk-done alerts.
+[triggers]
+crons = ["* * * * *"]
+
+# Paste the id printed by: npx wrangler kv namespace create DESK
+[[kv_namespaces]]
+binding = "DESK"
+id = "fafcf5efcd6a4f88af0312511d099908"
+
+[vars]
+VAPID_SUB = "mailto:study-desk@example.com"
+# Set to the site address (e.g. "https://prakharkumarchandraker.github.io") to block other sites. "*" works too.
+ALLOW_ORIGIN = "*"
+
+# Secret (not in this file): npx wrangler secret put VAPID_JWK   <- paste the line from make_keys.mjs
