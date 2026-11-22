@@ -472,7 +472,7 @@ async function pushOn(){if(!pushOK()){toast('Background alerts are not set up ye
     const reg=await navigator.serviceWorker.ready;const {key}=await (await fetch(PUSH_URL.replace(/\/$/,'')+'/key')).json();
     let sub=await reg.pushManager.getSubscription();if(sub&&PS.key&&PS.key!==key){await sub.unsubscribe();sub=null}
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(key)});
-    if(!PS.id){const a=crypto.getRandomValues(new Uint8Array(12));PS.id=Array.from(a,b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('')}
+    if(!PS.id||PS.id.length<16){const a=crypto.getRandomValues(new Uint8Array(20));PS.id=Array.from(a,b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('')}
     await pushPost('/sub',Object.assign({sub:sub.toJSON()},pushSched()));
     PS.on=true;PS.key=key;savePS();await swConfig();render();toast('Background alerts on. They come even when the app is closed.')}
   catch(e){toast('Could not turn on background alerts: '+String(e.message||e).slice(0,60))}}
