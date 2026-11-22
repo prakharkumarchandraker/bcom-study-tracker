@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION after changing index.html so phones pick up the update.
-const VERSION='desk-v15';
+const VERSION='desk-v16';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 // only old app caches are deleted; 'desk-push' holds the background-alert settings

@@ -270,7 +270,7 @@ const INFO={
 /* ================= state ================= */
 function mkTopic(name){return {id:uid(),name,done:'',r1:'',r2:'',rf:''}}
 function fresh(){const sem={id:uid(),name:'Semester 1',exam:''};return {v:3,meta:{updated:0},sems:[sem],activeSem:sem.id,subjects:[],plan:{date:'',hours:0,ids:[],mode:''},hoursLog:{},
-  set:{theme:'system',mpt:45,rmin:15,buffer:5,hours:2,vshare:50,speed:1,brkOn:true,brkEvery:30,brkFrom:'07:00',brkTo:'23:00',brkSound:true,tutDone:false},open:{}}}
+  set:{theme:'system',mpt:45,rmin:15,buffer:5,hours:2,vshare:50,speed:1,brkOn:true,brkEvery:30,brkFrom:'07:00',brkTo:'23:00',brkSound:true,floatCalm:true,tutDone:false},open:{}}}
 function loadPack(){for(const ps of PACK.subjects){if(S.subjects.some(s=>s.pk===ps.key))continue;
   S.subjects.push({id:uid(),pk:ps.key,semId:S.activeSem,name:ps.name,kind:PACK.kinds[ps.key]||'Other',exam:'',units:ps.units.map(([un,ts])=>({id:uid(),name:un,topics:ts.map(([k,n])=>mkTopic(n))}))})}
   S.packVer=PACK.ver}
@@ -492,23 +492,31 @@ if(PS.on)swConfig();
 
 /* ---------- floating timer: stays on top while YouTube / other apps are open ---------- */
 let FW=null,FV=null;
-function floatState(){if(BRK.walkEnd){const s=Math.max(0,Math.ceil((BRK.walkEnd-Date.now())/1000));return {k:'run',big:Math.floor(s/60)+':'+z(s%60),h:'Walking…'}}
-  if(BRK.open)return {k:$('#brk-end').hidden?'ask':'end',big:tFmt(new Date()),h:$('#brk-end').hidden?'Stand up and walk':'Walk done'};
+// calm mode (default): no clock while studying, just "Study"; at break time it blinks BREAK / WALK in two colours
+const calm=()=>S.set.floatCalm!==false;
+function floatState(){const alt=Math.floor(Date.now()/1000)%2;
+  if(BRK.walkEnd){const s=Math.max(0,Math.ceil((BRK.walkEnd-Date.now())/1000));return {k:'run',big:Math.floor(s/60)+':'+z(s%60),h:'Walking…',alt:0}}
+  if(BRK.open){const ask=$('#brk-end').hidden;return ask?{k:'ask',big:alt?'WALK':'BREAK',h:'Stand up and walk',alt}:{k:'end',big:calm()?'Study':tFmt(new Date()),h:'Walk done · back to study',alt}}
+  if(calm())return {k:'idle',big:'Study',h:'',alt:0};
   const d=S.set.brkOn&&!BRK.snooze?nextBreak():null,mins=d?Math.max(0,Math.ceil((d-new Date())/60000)):null;
-  return {k:'idle',big:tFmt(new Date()),h:BRK.snooze?'Snoozed until '+tFmt(new Date(BRK.snooze)):d?`Break in ${mins} min · ${tFmt(d)}`:'Break reminders are off'}}
-function floatTick(){const st=floatState();
-  if(FW){const doc=FW.document,b=doc.body;if(b.dataset.k!==st.k){b.dataset.k=st.k;
-      b.innerHTML=`<div class="fl"><div class="fh">${st.h}</div><div class="fb" id="fb"></div>`+
+  return {k:'idle',big:tFmt(new Date()),h:BRK.snooze?'Snoozed until '+tFmt(new Date(BRK.snooze)):d?`Break in ${mins} min · ${tFmt(d)}`:'Break reminders are off',alt:0}}
+const FCOL={ask:['#C8452E','#2343A6'],end:['#1E8E5A','#2343A6'],run:['#1E8E5A','#1E8E5A'],idle:['#14182A','#14182A']};
+function floatTick(){const st=floatState(),key=st.k+(calm()?'c':'');
+  if(FW){const doc=FW.document,b=doc.body;if(b.dataset.key!==key){b.dataset.key=key;b.dataset.k=st.k;
+      const tog=`<button class="g s" data-act="floatCalm" title="${calm()?'Show the clock':'Hide the clock'}">${calm()?'⏱ Show time':'Hide time'}</button>`;
+      b.innerHTML=`<div class="fl"><div class="fh" id="fh"></div><div class="fb" id="fb"></div>`+
       (st.k==='ask'?`<div class="fr">${[1,3,5,10].map(m=>`<button data-act="brkWalk" data-m="${m}">${m} min</button>`).join('')}</div><div class="fr"><button class="g" data-act="brkSnooze">Snooze 5</button><button class="g" data-act="brkDone">Skip</button></div>`:
        st.k==='run'?`<div class="fr"><button class="g" data-act="brkStop">Stop early</button></div>`:
-       st.k==='end'?`<div class="fr"><button data-act="brkBack">Back to study ✓</button></div>`:`<div class="fr"><button class="g" data-act="floatApp">Open app</button></div>`)+`</div>`}
-    const fb=doc.getElementById('fb');if(fb)fb.textContent=st.big;const fh=doc.querySelector('.fh');if(fh&&st.k==='idle')fh.textContent=st.h}
-  if(FV){const c=FV.c,x=c.getContext('2d'),ask=st.k==='ask'||st.k==='end';x.fillStyle=ask?'#2343A6':'#14182A';x.fillRect(0,0,c.width,c.height);x.fillStyle='#fff';x.textAlign='center';
-    x.font='600 92px ui-monospace,Menlo,monospace';x.fillText(st.big,c.width/2,150);x.font='34px system-ui,sans-serif';x.fillText(st.h,c.width/2,215);
+       st.k==='end'?`<div class="fr"><button data-act="brkBack">Back to study ✓</button></div>`:`<div class="fr">${tog}</div>`)+`</div>`}
+    b.style.background=FCOL[st.k][st.alt];
+    const fb=doc.getElementById('fb');if(fb)fb.textContent=st.big;const fh=doc.getElementById('fh');if(fh){fh.textContent=st.h;fh.hidden=!st.h}}
+  if(FV){const c=FV.c,x=c.getContext('2d');x.fillStyle=FCOL[st.k][st.alt];x.fillRect(0,0,c.width,c.height);x.fillStyle='#fff';x.textAlign='center';
+    x.font='600 92px ui-monospace,Menlo,monospace';x.fillText(st.big,c.width/2,st.h?150:180);if(st.h){x.font='34px system-ui,sans-serif';x.fillText(st.h,c.width/2,215)}
     if(st.k==='ask'){x.font='26px system-ui,sans-serif';x.fillText('Open the app to pick a walk time',c.width/2,262)}}}
-const FCSS=`body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#14182A;color:#fff;height:100vh;display:grid;place-items:center;text-align:center}
-body[data-k=ask],body[data-k=end]{background:#2343A6}.fl{padding:10px;width:100%}.fh{font-size:15px;opacity:.9}.fb{font:600 44px/1.1 ui-monospace,Menlo,monospace;margin:4px 0 10px;font-variant-numeric:tabular-nums}
-.fr{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px}button{font:600 14px system-ui,sans-serif;border:0;border-radius:9px;padding:8px 10px;background:#fff;color:#14182A;cursor:pointer}button.g{background:rgb(255 255 255 / .16);color:#fff}`;
+const FCSS=`body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#14182A;color:#fff;height:100vh;display:grid;place-items:center;text-align:center;transition:background .35s}
+.fl{padding:10px;width:100%}.fh{font-size:15px;opacity:.9}.fb{font:600 44px/1.1 ui-monospace,Menlo,monospace;margin:4px 0 10px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+body[data-key=idlec] .fb{font:400 40px/1.1 Georgia,serif;opacity:.85}
+.fr{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px}button{font:600 14px system-ui,sans-serif;border:0;border-radius:9px;padding:8px 10px;background:#fff;color:#14182A;cursor:pointer}button.g{background:rgb(255 255 255 / .16);color:#fff}button.s{font-size:12px;padding:5px 9px;opacity:.7}`;
 async function floatOpen(){unlockAudio();
   if(FW||FV){floatClose();return}
   if('documentPictureInPicture' in window){try{const w=await documentPictureInPicture.requestWindow({width:300,height:210});FW=w;
@@ -619,6 +627,7 @@ VIEWS.settings=()=>head('Settings','Study, sync & backup')+
   sec('breaks','Break reminders',`<label class="switch"><input type="checkbox" id="brk-on" ${S.set.brkOn?'checked':''}> Remind me to stand up and walk</label>
     <div class="fgrid" style="margin-top:12px"><label class="f">Every (minutes)<input type="number" min="5" max="240" step="1" inputmode="numeric" id="set-brkEvery" data-set="brkEvery" value="${esc(S.set.brkEvery)}"><span class="hint">Any number, e.g. 11, 15, 30. Counted from the From time.</span></label><label class="f">From<input type="time" id="brk-from" value="${esc(S.set.brkFrom)}"></label><label class="f">Until<input type="time" id="brk-to" value="${esc(S.set.brkTo)}"></label></div>
     <label class="switch" style="margin-top:12px"><input type="checkbox" id="brk-sound" ${S.set.brkSound?'checked':''}> Play a sound</label>
+    <label class="switch" style="margin-top:8px"><input type="checkbox" id="float-calm" ${calm()?'checked':''}> Floating timer: show only “Study” (no clock); blink BREAK / WALK at break time</label>
     <div class="small" style="margin-top:10px" id="notif-st">${esc(notifStatus())}</div>
     <div class="row" style="margin-top:12px"><button class="btn" data-act="brkTest">Test reminder now</button>${'Notification' in window&&Notification.permission==='default'?'<button class="btn" data-act="notifAsk">Allow notifications</button>':''}</div>
     <div class="plain" style="margin-top:14px;padding:0"><b>Background alerts</b><div class="small muted" style="margin:2px 0 8px">${!PUSH_URL?'Not set up yet: the push server address is missing (README §5).':!pushOK()?'This browser cannot get background alerts.':PS.on?'On for this device. Break and walk-done alerts pop up even when the app is closed or YouTube is open. The notification has Walk 5 min and Snooze buttons.':'Get break alerts even when the app is closed or you are on YouTube.'}</div>
@@ -736,6 +745,7 @@ const A={
   pushOn:()=>pushOn(),pushOff:el=>armed(el,pushOff,'Tap again to turn off'),
   pushTest:()=>pushPost('/test',{}).then(j=>toast(j.ok?'Test sent. Close the app or open YouTube: it should pop up in a few seconds.':'Test failed ('+j.status+')'),e=>toast('Test failed: '+String(e.message||e).slice(0,60))),
   float:()=>floatOpen(),
+  floatCalm:()=>{S.set.floatCalm=!calm();save();floatTick();render()},
   brkTest:()=>{unlockAudio();showBreak()},
   notifAsk:()=>{try{Notification.requestPermission().then(()=>render())}catch(e){toast('Notifications are not supported here')}},
   info:el=>{const k=el.dataset.k,on=!UI.info.has(k);on?UI.info.add(k):UI.info.delete(k);const box=el.closest('.section').querySelector(':scope > .info');if(box)box.hidden=!on;el.setAttribute('aria-expanded',on)},
@@ -791,6 +801,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='semsel'){S.activeSem=t.value;S.plan.date='';save();render()}
   else if(t.id==='brk-on'){S.set.brkOn=t.checked;save();pushSync();if(t.checked&&'Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(()=>render())}catch(e){}}render();toast(t.checked?'Break reminders on':'Break reminders off')}
+  else if(t.id==='float-calm'){S.set.floatCalm=t.checked;save();floatTick();toast(t.checked?'Floating timer shows only Study':'Floating timer shows the clock')}
   else if(t.id==='brk-sound'){S.set.brkSound=t.checked;save();if(t.checked){unlockAudio();chime()}}
   else if(t.id==='brk-from'||t.id==='brk-to'){if(t.value){S.set[t.id==='brk-from'?'brkFrom':'brkTo']=t.value;save();pushSync();toast('Saved')}}
   else if(t.id==='pick-sub'){const p=$('#pick-top');if(p)p.innerHTML=pickOpts(t.value)}
