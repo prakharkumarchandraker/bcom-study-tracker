@@ -259,7 +259,7 @@ const INFO={
  lect:'Lecture videos picked for today. Lectures linked to today\'s new topics come first, then the next lectures in order from each subject. Tap a lecture when watched to cross it out. Watch ↗ opens the video.',
  lectures:'Add lecture videos for any subject by pasting JSON. Tap <b>Get the Claude prompt</b>, copy it, paste it into Claude with your lecture names, lengths and links, and paste the JSON Claude gives back into <b>+ Add lectures</b>. Daily study time is then split between topics and lectures by the share below.',
  study:'Minutes per topic: about how long a new topic takes you. Minutes per revision: how long revising one topic takes. Today’s list uses it to decide how many topics fit in your study time. Revision days: the last days before the exam kept free for revision.',
- breaks:'At the interval you set, counted from the From time (with 30 min from 7:00 that is 9:30, 10:00, 10:30…), the app shows a full-screen reminder with a sound and a phone notification. It works while the app is open. With the phone locked or the app closed, Android may delay or skip it, so use Focus clock while studying: it keeps the screen on and the reminders on time.',
+ breaks:'At the interval you set, counted from the From time (with 30 min from 7:00 that is 9:30, 10:00, 10:30…), the app shows a full-screen reminder with a sound and a phone notification. Turn on <b>Background alerts</b> to get them even when the app is closed or you are watching YouTube: tap <b>Walk 5 min</b> on the notification and a Walk done alert comes 5 minutes later. On a laptop, <b>⧉ Float</b> opens a small timer that stays on top of other windows.',
  look:'Match phone follows your phone’s dark mode setting.',
  sync:'Your data always saves on this device first and works without internet. Cloud sync keeps a copy in Firebase so the same data shows on phone and laptop, and nothing is lost if the phone changes. No login: the sync code is the key. Keep it private, and write it down somewhere safe.',
  backup:'Download a backup file once a week and keep it in Google Drive or email it to yourself. Import replaces everything on this device with the backup.',
@@ -438,13 +438,16 @@ function nextBreak(){const ev=EV(),now=new Date(),m=now.getHours()*60+now.getMin
 function nextBreakText(){if(!S.set.brkOn)return 'Break reminders are off';if(BRK.snooze)return 'Snoozed until '+tFmt(new Date(BRK.snooze));const d=nextBreak();if(!d)return '';const mins=Math.max(0,Math.ceil((d-new Date())/60000));return `Next break at ${tFmt(d)} · in ${mins} min`}
 function notifStatus(){if(!('Notification' in window))return 'This browser does not support notifications. The full-screen reminder and sound still work.';const p=Notification.permission;return p==='granted'?'Notifications are allowed.':p==='denied'?'Notifications are blocked. Allow them in the browser’s site settings to get them.':'Tap “Allow notifications” so the reminder also shows in the phone’s notification bar.'}
 const BRK={open:false,snooze:0,rep:null,reps:0,walkEnd:0};
-function walkTick(){if(!BRK.walkEnd)return;const left=BRK.walkEnd-Date.now();if(left<=0){BRK.walkEnd=0;brkPane('end');chime();try{navigator.vibrate&&navigator.vibrate([500,200,500,200,500])}catch(e){}sysNotify('Walk done','Back to study.');clearInterval(BRK.rep);BRK.reps=0;BRK.rep=setInterval(()=>{if(!BRK.open||++BRK.reps>2){clearInterval(BRK.rep);return}chime()},30000);return}const sec=Math.ceil(left/1000);$('#brk-cd').textContent=Math.floor(sec/60)+':'+z(sec%60)}
+function walkTick(){if(!BRK.walkEnd)return;const left=BRK.walkEnd-Date.now();if(left<=0){BRK.walkEnd=0;brkPane('end');chime();try{navigator.vibrate&&navigator.vibrate([500,200,500,200,500])}catch(e){}sysNotify('Walk done','Sit down, drink some water and get back to study.','walkdone');clearInterval(BRK.rep);BRK.reps=0;BRK.rep=setInterval(()=>{if(!BRK.open||++BRK.reps>2){clearInterval(BRK.rep);return}chime()},30000);return}const sec=Math.ceil(left/1000);$('#brk-cd').textContent=Math.floor(sec/60)+':'+z(sec%60)}
 const BKEY='pragati-desk-brk';
 let AC=null;function unlockAudio(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
 document.addEventListener('pointerdown',unlockAudio,{passive:true});
 function chime(){if(!S.set.brkSound)return;try{unlockAudio();if(!AC)return;const t0=AC.currentTime;[784,988,1175,988,1175].forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;const st=t0+i*0.22;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.35,st+0.03);g.gain.exponentialRampToValueAtTime(0.0001,st+0.5);o.connect(g).connect(AC.destination);o.start(st);o.stop(st+0.55)})}catch(e){}}
-function sysNotify(title,body){title=title||'Stand up and walk';try{if(!('Notification' in window)||Notification.permission!=='granted')return;const opt={body:body||'Pick a walk time in the app: 1, 3, 5 or 10 min.',tag:'break',renotify:true,requireInteraction:true,vibrate:[300,150,300,150,300],icon:'icon-192.png',badge:'icon-192.png'};
-  if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>{if(r)r.showNotification(title,opt);else new Notification(title,opt)}).catch(()=>{});else new Notification(title,opt)}catch(e){}}
+function sysNotify(title,body,kind){kind=kind||'break';title=title||'Stand up and walk';try{if(!('Notification' in window)||Notification.permission!=='granted')return;const opt={body:body||'Time for a break. Tap a walk time below, or open the app.',tag:'break',renotify:true,requireInteraction:true,vibrate:[300,150,300,150,300],icon:'icon-192.png',badge:'icon-192.png',data:{kind,at:Date.now()},
+    actions:kind==='break'?[{action:'w5',title:'Walk 5 min'},{action:'snooze',title:'Snooze 5 min'}]:[]};
+  if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(async r=>{if(!r){delete opt.actions;new Notification(title,opt);return}
+    const old=r.getNotifications?await r.getNotifications({tag:'break'}):[];if(old.some(n=>n.data&&n.data.kind===kind&&Date.now()-n.data.at<150000))return; // the push server already showed it
+    r.showNotification(title,opt)}).catch(()=>{});else{delete opt.actions;new Notification(title,opt)}}catch(e){}}
 function brkPane(p){for(const k of ['ask','run','end'])$('#brk-'+k).hidden=k!==p}
 function showBreak(){BRK.open=true;const el=$('#brk');el.hidden=false;brkPane('ask');$('#brk-time').textContent=tFmt(new Date());chime();try{navigator.vibrate&&navigator.vibrate([400,200,400,200,400])}catch(e){}sysNotify();
   clearInterval(BRK.rep);BRK.reps=0;BRK.rep=setInterval(()=>{if(!BRK.open||++BRK.reps>2){clearInterval(BRK.rep);return}chime();try{navigator.vibrate&&navigator.vibrate([400,200,400])}catch(e){}},40000);
@@ -454,13 +457,75 @@ function checkBreak(){if(!S.set.brkOn||BRK.open||BRK.walkEnd)return;const now=ne
   if(BRK.snooze){if(+now>=BRK.snooze){BRK.snooze=0;showBreak()}return}
   const ev=EV(),m=now.getHours()*60+now.getMinutes(),off=relOf(m)%ev,slot=(m-off+1440)%1440;if(off>2||!inHours(slot))return;
   const key=today()+'@'+slot;let last='';try{last=localStorage.getItem(BKEY)||''}catch(e){}if(last===key)return;try{localStorage.setItem(BKEY,key)}catch(e){}showBreak()}
+
+/* ---------- background alerts: Web Push via the Cloudflare Worker in push/ (works with the app closed / YouTube open) ---------- */
+const PUSH_URL='https://study-desk-push.prakharkumarchandraker.workers.dev';// <- paste the worker address after deploying push/ (README §5), e.g. 'https://study-desk-push.yourname.workers.dev'
+const PKEY='pragati-desk-push';
+const PS=(()=>{try{return JSON.parse(localStorage.getItem(PKEY))||{}}catch(e){return {}}})();
+function savePS(){try{localStorage.setItem(PKEY,JSON.stringify(PS))}catch(e){}}
+const pushOK=()=>!!PUSH_URL&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const u8=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+async function pushPost(path,body){const r=await fetch(PUSH_URL.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({id:PS.id},body))});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);return j}
+function pushSched(){return {on:!!S.set.brkOn,every:EV(),from:S.set.brkFrom,to:S.set.brkTo,tz:(Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Kolkata')}}
+async function pushOn(){if(!pushOK()){toast('Background alerts are not set up yet (see README).');return}
+  try{if(Notification.permission!=='granted'&&await Notification.requestPermission()!=='granted'){toast('Allow notifications first, then try again.');render();return}
+    const reg=await navigator.serviceWorker.ready;const {key}=await (await fetch(PUSH_URL.replace(/\/$/,'')+'/key')).json();
+    let sub=await reg.pushManager.getSubscription();if(sub&&PS.key&&PS.key!==key){await sub.unsubscribe();sub=null}
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(key)});
+    if(!PS.id){const a=crypto.getRandomValues(new Uint8Array(12));PS.id=Array.from(a,b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('')}
+    await pushPost('/sub',Object.assign({sub:sub.toJSON()},pushSched()));
+    PS.on=true;PS.key=key;savePS();await swConfig();render();toast('Background alerts on. They come even when the app is closed.')}
+  catch(e){toast('Could not turn on background alerts: '+String(e.message||e).slice(0,60))}}
+async function pushOff(){try{await pushPost('/unsub',{})}catch(e){}try{const r=await navigator.serviceWorker.ready;const s=await r.pushManager.getSubscription();s&&await s.unsubscribe()}catch(e){}PS.on=false;savePS();await swConfig();render();toast('Background alerts off on this device')}
+let pushT2;function pushSync(){if(!PS.on||!pushOK())return;clearTimeout(pushT2);pushT2=setTimeout(async()=>{try{const r=await navigator.serviceWorker.ready;const sub=await r.pushManager.getSubscription();if(!sub){PS.on=false;savePS();render();return}await pushPost('/sub',Object.assign({sub:sub.toJSON()},pushSched()))}catch(e){}},800)}
+function pushOnce(at,kind){if(!PS.on||!pushOK())return;pushPost('/once',{at,kind}).catch(()=>{})}
+// the service worker reads this to answer the "Walk 5 min" / "Snooze" buttons on the notification
+async function swConfig(){try{const c=await caches.open('desk-push');await c.put('./__push-config',new Response(JSON.stringify(PS.on?{url:PUSH_URL,id:PS.id}:{})))}catch(e){}}
+function markSlot(){const m=new Date().getHours()*60+new Date().getMinutes(),off=relOf(m)%EV();if(off<=2)try{localStorage.setItem(BKEY,today()+'@'+((m-off+1440)%1440))}catch(e){}}
+function bgWalk(end){BRK.open=true;$('#brk').hidden=false;clearInterval(BRK.rep);BRK.snooze=0;BRK.walkEnd=end;brkPane('run');walkTick()}
+if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',e=>{const m=e.data||{};
+  if(m.t==='break'&&!BRK.open&&!BRK.walkEnd){BRK.snooze=0;markSlot();showBreak()}
+  else if(m.t==='walk'&&m.end>Date.now())bgWalk(m.end);
+  else if(m.t==='snooze'){hideBreak();BRK.snooze=m.at}});
+if(PS.on)swConfig();
+
+/* ---------- floating timer: stays on top while YouTube / other apps are open ---------- */
+let FW=null,FV=null;
+function floatState(){if(BRK.walkEnd){const s=Math.max(0,Math.ceil((BRK.walkEnd-Date.now())/1000));return {k:'run',big:Math.floor(s/60)+':'+z(s%60),h:'Walking…'}}
+  if(BRK.open)return {k:$('#brk-end').hidden?'ask':'end',big:tFmt(new Date()),h:$('#brk-end').hidden?'Stand up and walk':'Walk done'};
+  const d=S.set.brkOn&&!BRK.snooze?nextBreak():null,mins=d?Math.max(0,Math.ceil((d-new Date())/60000)):null;
+  return {k:'idle',big:tFmt(new Date()),h:BRK.snooze?'Snoozed until '+tFmt(new Date(BRK.snooze)):d?`Break in ${mins} min · ${tFmt(d)}`:'Break reminders are off'}}
+function floatTick(){const st=floatState();
+  if(FW){const doc=FW.document,b=doc.body;if(b.dataset.k!==st.k){b.dataset.k=st.k;
+      b.innerHTML=`<div class="fl"><div class="fh">${st.h}</div><div class="fb" id="fb"></div>`+
+      (st.k==='ask'?`<div class="fr">${[1,3,5,10].map(m=>`<button data-act="brkWalk" data-m="${m}">${m} min</button>`).join('')}</div><div class="fr"><button class="g" data-act="brkSnooze">Snooze 5</button><button class="g" data-act="brkDone">Skip</button></div>`:
+       st.k==='run'?`<div class="fr"><button class="g" data-act="brkStop">Stop early</button></div>`:
+       st.k==='end'?`<div class="fr"><button data-act="brkBack">Back to study ✓</button></div>`:`<div class="fr"><button class="g" data-act="floatApp">Open app</button></div>`)+`</div>`}
+    const fb=doc.getElementById('fb');if(fb)fb.textContent=st.big;const fh=doc.querySelector('.fh');if(fh&&st.k==='idle')fh.textContent=st.h}
+  if(FV){const c=FV.c,x=c.getContext('2d'),ask=st.k==='ask'||st.k==='end';x.fillStyle=ask?'#2343A6':'#14182A';x.fillRect(0,0,c.width,c.height);x.fillStyle='#fff';x.textAlign='center';
+    x.font='600 92px ui-monospace,Menlo,monospace';x.fillText(st.big,c.width/2,150);x.font='34px system-ui,sans-serif';x.fillText(st.h,c.width/2,215);
+    if(st.k==='ask'){x.font='26px system-ui,sans-serif';x.fillText('Open the app to pick a walk time',c.width/2,262)}}}
+const FCSS=`body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#14182A;color:#fff;height:100vh;display:grid;place-items:center;text-align:center}
+body[data-k=ask],body[data-k=end]{background:#2343A6}.fl{padding:10px;width:100%}.fh{font-size:15px;opacity:.9}.fb{font:600 44px/1.1 ui-monospace,Menlo,monospace;margin:4px 0 10px;font-variant-numeric:tabular-nums}
+.fr{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px}button{font:600 14px system-ui,sans-serif;border:0;border-radius:9px;padding:8px 10px;background:#fff;color:#14182A;cursor:pointer}button.g{background:rgb(255 255 255 / .16);color:#fff}`;
+async function floatOpen(){unlockAudio();
+  if(FW||FV){floatClose();return}
+  if('documentPictureInPicture' in window){try{const w=await documentPictureInPicture.requestWindow({width:300,height:210});FW=w;
+      const st=w.document.createElement('style');st.textContent=FCSS;w.document.head.appendChild(st);w.document.title='Study Desk';
+      w.document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;if(el.dataset.act==='floatApp'){try{window.focus()}catch(_){}return}const a=A[el.dataset.act];if(a){a(el,e);floatTick()}});
+      w.addEventListener('pagehide',()=>{FW=null;render()});floatTick();render();toast('Floating timer is on. Keep it in a corner while you watch.');return}catch(e){}}
+  if(document.pictureInPictureEnabled){try{const c=document.createElement('canvas');c.width=640;c.height=300;const v=document.createElement('video');v.muted=true;v.playsInline=true;FV={c,v};floatTick();
+      v.srcObject=c.captureStream(1);await v.play();await v.requestPictureInPicture();v.addEventListener('leavepictureinpicture',()=>{FV=null;render()});render();toast('Floating timer is on.');return}catch(e){FV=null}}
+  toast(PS.on?'This browser cannot float a window. Background alerts will still pop up over other apps.':'This browser cannot float a window. Turn on Background alerts in Settings → Break reminders.')}
+function floatClose(){try{FW&&FW.close()}catch(e){}FW=null;try{FV&&document.pictureInPictureElement&&document.exitPictureInPicture()}catch(e){}FV=null;render()}
+const floatAble=()=>'documentPictureInPicture' in window||!!document.pictureInPictureEnabled;
 let WL=null;async function wake(on){try{if(on&&'wakeLock' in navigator){WL=await navigator.wakeLock.request('screen')}else if(!on&&WL){await WL.release();WL=null}}catch(e){}}
 function goFull(el){try{const r=(el||document.documentElement).requestFullscreen;if(r)return r.call(el||document.documentElement).catch(()=>{})}catch(e){}}
 function exitFull(){try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
 function focusProg(){const c=count(semSubs());const P=S.plan||{ids:[]};const done=(P.ids||[]).filter(id=>{const f=findTopic(id);return f&&f.x.done}).length;return `Today: ${done} of ${(P.ids||[]).length} new topics done · Semester: ${c.d}/${c.n}`}
 function clockTick(){const d=new Date();const a=$('#t-clock');if(a)a.innerHTML=clockHTML(d,false);const nb=$('#t-next');if(nb)nb.textContent=nextBreakText();
   if(!$('#focus').hidden){$('#f-clock').innerHTML=clockHTML(d,true);$('#f-date').textContent=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});$('#f-next').textContent=nextBreakText();$('#f-prog').textContent=focusProg()}
-  walkTick();checkBreak()}
+  walkTick();checkBreak();if(FW||FV)floatTick()}
 setInterval(clockTick,1000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkBreak();if(!$('#focus').hidden)wake(true)}});
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&!$('#focus').hidden){/* leaving fullscreen keeps focus view; user exits with ✕ */}});
@@ -511,7 +576,7 @@ VIEWS.today=()=>{
   if(pc.undated)paceNote+=`<div class="note acc">Set the exam start date below so the app can pace your topics.</div>`;
   const inWin=subs.some(s=>{const ws=winStart(s),e=examOf(s);return ws&&t>=ws&&t<=e});
   return head(hello+', Pragati',sem().name+' · '+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}))+
-  `<section class="section"><div class="sb clock-card"><div><div class="clock-big" id="t-clock">${clockHTML(new Date(),false)}</div><div class="small muted" style="margin-top:6px" id="t-next">${esc(nextBreakText())}</div></div><button class="btn primary" data-act="focusOn">⛶ Focus clock</button></div></section>`+
+  `<section class="section"><div class="sb clock-card"><div><div class="clock-big" id="t-clock">${clockHTML(new Date(),false)}</div><div class="small muted" style="margin-top:6px" id="t-next">${esc(nextBreakText())}</div></div><div class="row">${floatAble()?`<button class="btn" data-act="float" title="Small always-on-top timer for when you watch YouTube">${FW||FV?'Close float':'⧉ Float'}</button>`:''}<button class="btn primary" data-act="focusOn">⛶ Focus clock</button></div></div></section>`+
   sec('hours','How long will you study today?',hoursBody)+
   `<div class="row" style="margin:-4px 0 12px;gap:6px"><span class="tag acc" style="font-size:13px;padding:5px 10px">Today: ${hrs(h)}</span><span class="tag" style="font-size:13px;padding:5px 10px">${items.length} new topic${items.length===1?'':'s'}</span><span class="tag good" style="font-size:13px;padding:5px 10px">${revs.length} revision${revs.length===1?'':'s'}</span>${vc.n?`<span class="tag acc" style="font-size:13px;padding:5px 10px">▶ ${vids.length} lecture${vids.length===1?'':'s'} · ${vMinsToday} min</span>`:''}</div>`+
   sec('revise',inWin?'Revise today · final revision days':'Revise today',revBody,{flush:true})+
@@ -554,7 +619,9 @@ VIEWS.settings=()=>head('Settings','Study, sync & backup')+
     <div class="fgrid" style="margin-top:12px"><label class="f">Every (minutes)<input type="number" min="5" max="240" step="1" inputmode="numeric" id="set-brkEvery" data-set="brkEvery" value="${esc(S.set.brkEvery)}"><span class="hint">Any number, e.g. 11, 15, 30. Counted from the From time.</span></label><label class="f">From<input type="time" id="brk-from" value="${esc(S.set.brkFrom)}"></label><label class="f">Until<input type="time" id="brk-to" value="${esc(S.set.brkTo)}"></label></div>
     <label class="switch" style="margin-top:12px"><input type="checkbox" id="brk-sound" ${S.set.brkSound?'checked':''}> Play a sound</label>
     <div class="small" style="margin-top:10px" id="notif-st">${esc(notifStatus())}</div>
-    <div class="row" style="margin-top:12px"><button class="btn" data-act="brkTest">Test reminder now</button>${'Notification' in window&&Notification.permission==='default'?'<button class="btn" data-act="notifAsk">Allow notifications</button>':''}</div>`)+
+    <div class="row" style="margin-top:12px"><button class="btn" data-act="brkTest">Test reminder now</button>${'Notification' in window&&Notification.permission==='default'?'<button class="btn" data-act="notifAsk">Allow notifications</button>':''}</div>
+    <div class="plain" style="margin-top:14px;padding:0"><b>Background alerts</b><div class="small muted" style="margin:2px 0 8px">${!PUSH_URL?'Not set up yet: the push server address is missing (README §5).':!pushOK()?'This browser cannot get background alerts.':PS.on?'On for this device. Break and walk-done alerts pop up even when the app is closed or YouTube is open. The notification has Walk 5 min and Snooze buttons.':'Get break alerts even when the app is closed or you are on YouTube.'}</div>
+    <div class="row">${pushOK()?(PS.on?'<button class="btn" data-act="pushTest">Send a test alert</button><button class="btn" data-act="pushOff">Turn off</button>':'<button class="btn primary" data-act="pushOn">Turn on background alerts</button>'):''}${floatAble()?`<button class="btn" data-act="float">${FW||FV?'Close floating timer':'⧉ Floating timer'}</button>`:''}</div></div>`)+
   sec('look','Look',`<div class="pill-opts">${['system','light','dark'].map(t=>`<label><input type="radio" name="theme" value="${t}" data-act="setTheme" ${S.set.theme===t?'checked':''}>${t==='system'?'Match phone':t[0].toUpperCase()+t.slice(1)}</label>`).join('')}</div>`)+
   sec('sync','Cloud sync',syncOn()?`<div class="small muted">Sync code for this desk</div><div class="row" style="margin:4px 0 10px;flex-wrap:nowrap"><code id="sy-show" style="font-size:15px;padding:8px 10px;user-select:all;overflow-wrap:anywhere;flex:1;min-width:0">${esc(SY.code)}</code><button class="btn sm" data-act="copyCode">Copy</button></div>
     <div class="small">On another phone or laptop, open the app → Settings → Cloud sync → <b>Use a code</b> and enter this code.</div>
@@ -661,10 +728,13 @@ const A={
   focusOn:()=>{unlockAudio();$('#focus').hidden=false;renderFocus();clockTick();goFull();wake(true)},
   focusOff:()=>{$('#focus').hidden=true;exitFull();wake(false)},
   brkDone:()=>{hideBreak();toast('Skipped. Next break '+(nextBreak()?'at '+tFmt(nextBreak()):'later'))},
-  brkWalk:el=>{unlockAudio();clearInterval(BRK.rep);BRK.walkEnd=Date.now()+(+el.dataset.m)*60000;brkPane('run');walkTick();try{navigator.serviceWorker&&navigator.serviceWorker.getRegistration&&navigator.serviceWorker.getRegistration().then(r=>r&&r.getNotifications&&r.getNotifications({tag:'break'}).then(ns=>ns.forEach(n=>n.close()))).catch(()=>{})}catch(e){}},
-  brkStop:()=>{BRK.walkEnd=0;brkPane('end')},
+  brkWalk:el=>{unlockAudio();clearInterval(BRK.rep);BRK.walkEnd=Date.now()+(+el.dataset.m)*60000;brkPane('run');walkTick();pushOnce(BRK.walkEnd,'walkdone');try{navigator.serviceWorker&&navigator.serviceWorker.getRegistration&&navigator.serviceWorker.getRegistration().then(r=>r&&r.getNotifications&&r.getNotifications({tag:'break'}).then(ns=>ns.forEach(n=>n.close()))).catch(()=>{})}catch(e){}},
+  brkStop:()=>{BRK.walkEnd=0;brkPane('end');pushOnce(0)},
   brkBack:()=>{hideBreak();toast('Back to study. Next break '+(nextBreak()?'at '+tFmt(nextBreak()):'later'))},
-  brkSnooze:()=>{hideBreak();BRK.snooze=Date.now()+5*60000;toast('Snoozed for 5 minutes')},
+  brkSnooze:()=>{hideBreak();BRK.snooze=Date.now()+5*60000;pushOnce(BRK.snooze,'break');toast('Snoozed for 5 minutes')},
+  pushOn:()=>pushOn(),pushOff:el=>armed(el,pushOff,'Tap again to turn off'),
+  pushTest:()=>pushPost('/test',{}).then(j=>toast(j.ok?'Test sent. Close the app or open YouTube: it should pop up in a few seconds.':'Test failed ('+j.status+')'),e=>toast('Test failed: '+String(e.message||e).slice(0,60))),
+  float:()=>floatOpen(),
   brkTest:()=>{unlockAudio();showBreak()},
   notifAsk:()=>{try{Notification.requestPermission().then(()=>render())}catch(e){toast('Notifications are not supported here')}},
   info:el=>{const k=el.dataset.k,on=!UI.info.has(k);on?UI.info.add(k):UI.info.delete(k);const box=el.closest('.section').querySelector(':scope > .info');if(box)box.hidden=!on;el.setAttribute('aria-expanded',on)},
@@ -719,13 +789,13 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='semsel'){S.activeSem=t.value;S.plan.date='';save();render()}
-  else if(t.id==='brk-on'){S.set.brkOn=t.checked;save();if(t.checked&&'Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(()=>render())}catch(e){}}render();toast(t.checked?'Break reminders on':'Break reminders off')}
+  else if(t.id==='brk-on'){S.set.brkOn=t.checked;save();pushSync();if(t.checked&&'Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(()=>render())}catch(e){}}render();toast(t.checked?'Break reminders on':'Break reminders off')}
   else if(t.id==='brk-sound'){S.set.brkSound=t.checked;save();if(t.checked){unlockAudio();chime()}}
-  else if(t.id==='brk-from'||t.id==='brk-to'){if(t.value){S.set[t.id==='brk-from'?'brkFrom':'brkTo']=t.value;save();toast('Saved')}}
+  else if(t.id==='brk-from'||t.id==='brk-to'){if(t.value){S.set[t.id==='brk-from'?'brkFrom':'brkTo']=t.value;save();pushSync();toast('Saved')}}
   else if(t.id==='pick-sub'){const p=$('#pick-top');if(p)p.innerHTML=pickOpts(t.value)}
   else if(t.id==='sem-exam'){sem().exam=t.value;S.plan.date='';save();render();toast(t.value?'Exam date saved':'Exam date cleared')}
   else if(t.id==='hrs-custom'){const h=Math.min(16,Math.max(0.5,parseFloat(t.value)||0));if(!parseFloat(t.value))return;S.hoursLog[today()]=h;buildPlan(h);save();render()}
-  else if(t.dataset.set){const v=parseFloat(t.value);if(isNaN(v))return;S.set[t.dataset.set]=v;S.plan.date='';save();toast('Saved')}
+  else if(t.dataset.set){const v=parseFloat(t.value);if(isNaN(v))return;S.set[t.dataset.set]=v;S.plan.date='';save();if(t.dataset.set==='brkEvery')pushSync();toast('Saved')}
   else if(t.id==='imp'&&t.files[0]){const r=new FileReader();r.onload=()=>importText(r.result);r.readAsText(t.files[0]);t.value=''}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(BRK.open&&!BRK.walkEnd){hideBreak();return}if(!$('#focus').hidden){$('#focus').hidden=true;exitFull();wake(false);return}}if(e.key==='Escape'&&SH)closeSheet();if(e.key==='Enter'&&e.target.tagName==='LABEL'&&e.target.htmlFor==='imp')$('#imp').click()});

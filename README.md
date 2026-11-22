@@ -38,6 +38,29 @@ Anyone who has the code can read and change the data, so don't post it publicly.
 
 Replace `index.html`, then in `sw.js` change `VERSION` (e.g. `desk-v2`) and redeploy. Data is not touched by updates.
 
+## 5. Break alerts while YouTube / other apps are open
+
+Two things, both in Settings → Break reminders (and **⧉ Float** on the Today clock):
+
+- **Floating timer (laptop, Chrome/Edge):** a small always-on-top window with the clock and next break. At break time it turns blue and has the 1/3/5/10 min walk buttons, so Pragati can start the walk without leaving YouTube. Phones cannot float a web page over other apps; use background alerts there.
+- **Background alerts (phone + laptop):** real notifications that pop up over YouTube even when the app is closed. The notification has **Walk 5 min** and **Snooze 5 min** buttons; after Walk 5 min a "Walk done" alert comes 5 minutes later. This needs a tiny free server (Cloudflare Worker, folder `push/`), set up once:
+
+```bash
+cd push
+npx wrangler login                     # free Cloudflare account, opens the browser
+npx wrangler kv namespace create DESK  # copy the id into wrangler.toml (PASTE_KV_ID_HERE)
+node make_keys.mjs                     # prints one line of keys, keep it private
+npx wrangler secret put VAPID_JWK      # paste that line
+npx wrangler deploy                    # prints https://study-desk-push.<name>.workers.dev
+```
+
+Then in `index.html` set `const PUSH_URL='https://study-desk-push.<name>.workers.dev';`, bump `VERSION` in `sw.js`, and redeploy the site.
+On each device: open the app → Settings → Break reminders → **Turn on background alerts** → **Send a test alert** (close the app and the alert should pop up in a few seconds).
+
+Phone settings so the alert really pops up: Android Settings → Apps → Chrome (or the installed Study Desk app) → Notifications → allow, and set the site's channel to **Pop on screen / Alert**. Battery saver can delay alerts by a minute or two.
+
+The server checks every minute, using the same Every / From / Until settings (it updates whenever they change). `node push/test_push.mjs` re-checks the encryption and timing.
+
 ## Adding a new semester
 
 Settings → Semesters → Add semester (set the exam start date, make it current). Then Syllabus → + Add subject for each subject and paste its syllabus:
