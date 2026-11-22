@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION after changing index.html so phones pick up the update.
-const VERSION='desk-v14';
+const VERSION='desk-v15';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 // only old app caches are deleted; 'desk-push' holds the background-alert settings
@@ -27,11 +27,10 @@ function show(m){
 self.addEventListener('push',e=>{
   let m={};try{m=e.data?e.data.json():{}}catch(_){}
   e.waitUntil((async()=>{
-    const cs=await wins();
-    if(!m.test&&cs.some(c=>c.visibilityState==='visible')){await tell({t:m.kind==='walkdone'?'walkdone':'break'});return} // app on screen: it shows its own full-screen reminder
+    // Always show it: on Android a frozen background tab can still report 'visible', so never skip on that.
     const old=await self.registration.getNotifications({tag:'break'});
     if(!m.test&&old.some(n=>n.data&&n.data.kind===m.kind&&Date.now()-n.data.at<150000))return; // the open app already showed it
-    await show(m);await tell({t:m.kind==='walkdone'?'walkdone':'break'});
+    await show(m);await tell({t:m.kind==='walkdone'?'walkdone':'break',at:Date.now()});
   })());
 });
 self.addEventListener('notificationclick',e=>{

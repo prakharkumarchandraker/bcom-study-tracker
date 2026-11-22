@@ -483,7 +483,8 @@ function pushOnce(at,kind){if(!PS.on||!pushOK())return;pushPost('/once',{at,kind
 async function swConfig(){try{const c=await caches.open('desk-push');await c.put('./__push-config',new Response(JSON.stringify(PS.on?{url:PUSH_URL,id:PS.id}:{})))}catch(e){}}
 function markSlot(){const m=new Date().getHours()*60+new Date().getMinutes(),off=relOf(m)%EV();if(off<=2)try{localStorage.setItem(BKEY,today()+'@'+((m-off+1440)%1440))}catch(e){}}
 function bgWalk(end){BRK.open=true;$('#brk').hidden=false;clearInterval(BRK.rep);BRK.snooze=0;BRK.walkEnd=end;brkPane('run');walkTick()}
-if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',e=>{const m=e.data||{};
+if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',e=>{const m=e.data||{};if(m.at&&Date.now()-m.at>180000)return; // old message delivered when a frozen tab wakes up
+  
   if(m.t==='break'&&!BRK.open&&!BRK.walkEnd){BRK.snooze=0;markSlot();showBreak()}
   else if(m.t==='walk'&&m.end>Date.now())bgWalk(m.end);
   else if(m.t==='snooze'){hideBreak();BRK.snooze=m.at}});
